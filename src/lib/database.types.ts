@@ -37,7 +37,7 @@ export type Database = {
           whatsapp_number: string | null;
           whatsapp_status: Database["public"]["Enums"]["whatsapp_registration_status"];
           access_status: Database["public"]["Enums"]["staff_access_status"];
-          is_admin: boolean;
+          role: Database["public"]["Enums"]["staff_role"];
           approved_by: string | null;
           approved_at: string | null;
           created_at: string;
@@ -49,7 +49,7 @@ export type Database = {
           whatsapp_number?: string | null;
           whatsapp_status?: Database["public"]["Enums"]["whatsapp_registration_status"];
           access_status?: Database["public"]["Enums"]["staff_access_status"];
-          is_admin?: boolean;
+          role?: Database["public"]["Enums"]["staff_role"];
           approved_by?: string | null;
           approved_at?: string | null;
           created_at?: string;
@@ -61,7 +61,7 @@ export type Database = {
           whatsapp_number?: string | null;
           whatsapp_status?: Database["public"]["Enums"]["whatsapp_registration_status"];
           access_status?: Database["public"]["Enums"]["staff_access_status"];
-          is_admin?: boolean;
+          role?: Database["public"]["Enums"]["staff_role"];
           approved_by?: string | null;
           approved_at?: string | null;
           created_at?: string;
@@ -103,6 +103,7 @@ export type Database = {
     };
     Enums: {
       staff_access_status: "pending" | "approved" | "rejected";
+      staff_role: "admin" | "manager" | "employee";
       whatsapp_registration_status: "pending" | "verified" | "rejected";
     };
     CompositeTypes: {

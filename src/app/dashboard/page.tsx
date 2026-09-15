@@ -166,7 +166,7 @@ export default async function DashboardPage() {
         <RecentActivityCard />
       </div>
 
-      {staff.is_admin && (
+      {staff.role === 'admin' && (
         <div className="mt-8 pt-8 border-t border-zinc-800">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-semibold text-zinc-100">Admin Overview</h2>

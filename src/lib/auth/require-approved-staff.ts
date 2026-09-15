@@ -1,39 +1,46 @@
 import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
 export type ApprovedStaff = {
   user_id: string;
   email: string;
   whatsapp_number: string | null;
   whatsapp_status: "pending" | "verified" | "rejected";
-  access_status: "approved";
-  is_admin: boolean;
+  access_status: "pending" | "approved" | "rejected";
+  role: "admin" | "manager" | "employee";
   approved_by: string | null;
   approved_at: string | null;
 };
 
+/**
+ * Ensures the current user is authenticated and has an approved staff profile.
+ * Redirects to /login or /pending if not.
+ * Returns the staff profile data.
+ */
 export async function requireApprovedStaff(): Promise<ApprovedStaff> {
   const supabase = await createClient();
+
   const {
     data: { user },
-    error: userError,
+    error: authError,
   } = await supabase.auth.getUser();
 
-  if (userError || !user) {
-    throw new Error("Authentication is required.");
+  if (authError || !user) {
+    redirect("/login");
   }
 
-  const { data: staff, error: staffError } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("staff_profiles")
     .select(
-      "user_id, email, whatsapp_number, whatsapp_status, access_status, is_admin, approved_by, approved_at",
+      "user_id, email, whatsapp_number, whatsapp_status, access_status, role, approved_by, approved_at",
     )
     .eq("user_id", user.id)
     .eq("access_status", "approved")
     .maybeSingle();
 
-  if (staffError || !staff) {
+  if (profileError || !profile) {
     throw new Error("Approved staff access is required.");
   }
 
-  return staff as ApprovedStaff;
+  return profile as ApprovedStaff;
 }

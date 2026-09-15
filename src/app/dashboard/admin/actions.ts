@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 
 export async function approveStaff(userId: string) {
   const admin = await requireApprovedStaff();
-  if (!admin.is_admin) {
+  if (admin.role !== 'admin') {
     throw new Error("Unauthorized");
   }
 
@@ -32,7 +32,7 @@ export async function approveStaff(userId: string) {
 
 export async function rejectStaff(userId: string) {
   const admin = await requireApprovedStaff();
-  if (!admin.is_admin) {
+  if (admin.role !== 'admin') {
     throw new Error("Unauthorized");
   }
 

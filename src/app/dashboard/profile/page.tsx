@@ -22,7 +22,7 @@ export default async function ProfilePage() {
           </div>
           <div className="flex justify-between py-2 border-b border-zinc-800/50">
             <span className="text-zinc-500 text-sm">Role</span>
-            <span className="text-zinc-200 text-sm font-medium">{staff.is_admin ? "Administrator" : "Employee"}</span>
+            <span className="text-zinc-200 text-sm font-medium">{staff.role === 'admin' ? "Administrator" : staff.role === 'manager' ? "Manager" : "Employee"}</span>
           </div>
           <div className="flex justify-between py-2">
             <span className="text-zinc-500 text-sm">Status</span>

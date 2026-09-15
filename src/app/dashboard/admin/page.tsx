@@ -7,7 +7,7 @@ import { RegistrationActions } from "@/app/dashboard/admin/registration-actions"
 export default async function AdminPage() {
   const staff = await requireApprovedStaff();
   
-  if (!staff.is_admin) {
+  if (staff.role !== 'admin') {
     redirect("/dashboard");
   }
   
@@ -20,7 +20,7 @@ export default async function AdminPage() {
 
   const { data: approvedStaff } = await supabase
     .from("staff_profiles")
-    .select("user_id, email, is_admin, whatsapp_number")
+    .select("user_id, email, role, whatsapp_number")
     .eq("access_status", "approved")
     .order("email", { ascending: true });
 
@@ -73,7 +73,7 @@ export default async function AdminPage() {
                     <p className="text-xs text-zinc-500 font-mono mt-1">{a.whatsapp_number}</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    {a.is_admin ? (
+                    {a.role === 'admin' ? (
                       <span className="px-2 py-1 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded text-[10px] font-bold uppercase tracking-wide">Admin</span>
                     ) : (
                       <span className="px-2 py-1 bg-zinc-800 text-zinc-400 rounded text-[10px] font-bold uppercase tracking-wide">Employee</span>

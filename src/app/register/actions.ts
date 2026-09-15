@@ -96,7 +96,7 @@ export async function registerStaffProfile(
     whatsapp_number: normalized,
     access_status: "pending",
     whatsapp_status: "pending",
-    is_admin: false,
+    role: 'employee',
     approved_by: null,
     approved_at: null,
   });

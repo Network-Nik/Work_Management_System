@@ -5,7 +5,7 @@ import Link from "next/link";
 export default async function AllowlistPage() {
   const staff = await requireApprovedStaff();
   
-  if (!staff.is_admin) {
+  if (staff.role !== 'admin') {
     redirect("/dashboard");
   }
 
