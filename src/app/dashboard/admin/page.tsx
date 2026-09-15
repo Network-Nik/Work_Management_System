@@ -1,0 +1,91 @@
+import { requireApprovedStaff } from "@/lib/auth/require-approved-staff";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
+import { RegistrationActions } from "@/app/dashboard/admin/registration-actions";
+
+export default async function AdminPage() {
+  const staff = await requireApprovedStaff();
+  
+  if (!staff.is_admin) {
+    redirect("/dashboard");
+  }
+  
+  const supabase = await createClient();
+  const { data: pendingStaff } = await supabase
+    .from("staff_profiles")
+    .select("user_id, email, whatsapp_number, created_at")
+    .eq("access_status", "pending")
+    .order("created_at", { ascending: true });
+
+  const { data: approvedStaff } = await supabase
+    .from("staff_profiles")
+    .select("user_id, email, is_admin, whatsapp_number")
+    .eq("access_status", "approved")
+    .order("email", { ascending: true });
+
+  return (
+    <div className="max-w-4xl mx-auto">
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">Staff Management</h1>
+        <Link href="/dashboard/admin/allowlist" className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-medium rounded-lg transition-colors">
+          Manage Allowlist
+        </Link>
+      </div>
+
+      <div className="mb-12">
+        <h2 className="text-lg font-semibold text-zinc-200 mb-4">Pending Registrations</h2>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+          {!pendingStaff || pendingStaff.length === 0 ? (
+            <div className="p-8 text-center text-zinc-500 text-sm">
+              No pending registrations.
+            </div>
+          ) : (
+            <div className="divide-y divide-zinc-800/50">
+              {pendingStaff.map((p) => (
+                <div key={p.user_id} className="p-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-zinc-200">{p.email}</p>
+                    <p className="text-xs text-zinc-500 font-mono mt-1">{p.whatsapp_number}</p>
+                    <p className="text-[10px] text-zinc-600 mt-1">Registered {new Date(p.created_at).toLocaleDateString()}</p>
+                  </div>
+                  <RegistrationActions userId={p.user_id} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div>
+        <h2 className="text-lg font-semibold text-zinc-200 mb-4">Approved Staff</h2>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+          {!approvedStaff || approvedStaff.length === 0 ? (
+            <div className="p-8 text-center text-zinc-500 text-sm">
+              No approved staff.
+            </div>
+          ) : (
+            <div className="divide-y divide-zinc-800/50">
+              {approvedStaff.map((a) => (
+                <div key={a.user_id} className="p-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-zinc-200">{a.email}</p>
+                    <p className="text-xs text-zinc-500 font-mono mt-1">{a.whatsapp_number}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {a.is_admin ? (
+                      <span className="px-2 py-1 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded text-[10px] font-bold uppercase tracking-wide">Admin</span>
+                    ) : (
+                      <span className="px-2 py-1 bg-zinc-800 text-zinc-400 rounded text-[10px] font-bold uppercase tracking-wide">Employee</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+

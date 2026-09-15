@@ -142,3 +142,59 @@ export async function registerStaffProfile(
   redirect("/pending");
 }
 
+export async function bootstrapInitialAdmin(
+  _previousState: RegisterFormState,
+  formData: FormData,
+): Promise<RegisterFormState> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user || !user.email) {
+    return { error: "Authentication is required. Please sign in again." };
+  }
+
+  const rawWhatsapp = formData.get("whatsapp_number");
+  if (typeof rawWhatsapp !== "string" || !rawWhatsapp.trim()) {
+    return { error: "WhatsApp number is required." };
+  }
+
+  const { isValid, normalized } = normalizeAndValidateWhatsapp(rawWhatsapp);
+  if (!isValid) {
+    return {
+      error:
+        "Please enter a valid WhatsApp number in international E.164 format (e.g. +94771234567).",
+    };
+  }
+
+  const { error: rpcError } = await supabase.rpc("bootstrap_first_admin", {
+    whatsapp_num: normalized,
+  });
+
+  if (rpcError) {
+    // 1. Log detailed diagnostics securely on the server
+    console.error(
+      "Bootstrap RPC Error [code: %s]: %s - %s",
+      rpcError.code || "UNKNOWN",
+      rpcError.message,
+      rpcError.details || "No details provided"
+    );
+
+    // 2. Safe user-facing validation errors (matched against our custom RAISE EXCEPTION messages)
+    if (rpcError.message.includes("An admin already exists")) {
+       return { error: "An admin already exists. Bootstrapping is disabled." };
+    }
+    if (rpcError.message.includes("Invalid WhatsApp number format")) {
+      return { error: "Invalid WhatsApp number format." };
+    }
+
+    // 3. Generic safe user-facing error for any other database failures (e.g., constraint violations)
+    return { error: "Failed to initialize workspace. Please try again." };
+  }
+
+  redirect("/dashboard");
+}
+

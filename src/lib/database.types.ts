@@ -82,11 +82,21 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      is_staff_admin: {
+      bootstrap_first_admin: {
+        Args: {
+          whatsapp_num: string;
+        };
+        Returns: undefined;
+      };
+      has_system_admins: {
         Args: Record<PropertyKey, never>;
         Returns: boolean;
       };
       is_approved_staff_email: {
+        Args: Record<PropertyKey, never>;
+        Returns: boolean;
+      };
+      is_staff_admin: {
         Args: Record<PropertyKey, never>;
         Returns: boolean;
       };

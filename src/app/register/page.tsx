@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { signOut } from "@/app/auth/actions";
 import { RegisterForm } from "@/app/register/register-form";
+import { BootstrapForm } from "@/app/register/bootstrap-form";
 import { requireApprovedStaff } from "@/lib/auth/require-approved-staff";
 import { createClient } from "@/lib/supabase/server";
 
@@ -47,8 +48,43 @@ export default async function RegisterPage() {
   // 4. Check if authenticated user's email is in the approved staff allowlist
   const { data: isAllowlisted } = await supabase.rpc("is_approved_staff_email");
 
-  // 5. If not allowlisted, render the "Access Not Available" state
+  // 5. If not allowlisted, check if we need to bootstrap the first admin
   if (!isAllowlisted) {
+    const { data: hasAdmins } = await supabase.rpc("has_system_admins");
+
+    if (hasAdmins === false) {
+      return (
+        <main className="flex min-h-dvh flex-1 items-center justify-center bg-slate-50 px-4 py-6 sm:px-6 sm:py-12">
+          <section className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+            <Link
+              className="text-sm font-semibold text-indigo-600 hover:text-indigo-500"
+              href="/"
+            >
+              Work Management System
+            </Link>
+
+            <h1 className="mt-6 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
+              Initialize Workspace
+            </h1>
+            
+            <BootstrapForm email={user.email} />
+
+            <div className="mt-6 border-t border-slate-100 pt-4 text-center">
+              <form action={signOut}>
+                <button
+                  className="text-xs font-medium text-slate-500 hover:text-slate-700"
+                  type="submit"
+                >
+                  Sign out of this account
+                </button>
+              </form>
+            </div>
+          </section>
+        </main>
+      );
+    }
+
+    // Normal access restricted state (if admins exist but user isn't allowlisted)
     return (
       <main className="flex min-h-dvh flex-1 items-center justify-center bg-slate-50 px-4 py-6 sm:px-6 sm:py-12">
         <section className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
