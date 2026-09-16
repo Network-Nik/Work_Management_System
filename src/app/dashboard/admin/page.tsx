@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { RegistrationActions } from "@/app/dashboard/admin/registration-actions";
+import { RoleSelector } from "@/app/dashboard/admin/role-selector";
 
 export default async function AdminPage() {
   const staff = await requireApprovedStaff();
@@ -73,11 +74,7 @@ export default async function AdminPage() {
                     <p className="text-xs text-zinc-500 font-mono mt-1">{a.whatsapp_number}</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    {a.role === 'admin' ? (
-                      <span className="px-2 py-1 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded text-[10px] font-bold uppercase tracking-wide">Admin</span>
-                    ) : (
-                      <span className="px-2 py-1 bg-zinc-800 text-zinc-400 rounded text-[10px] font-bold uppercase tracking-wide">Employee</span>
-                    )}
+                    <RoleSelector userId={a.user_id} currentRole={a.role} />
                   </div>
                 </div>
               ))}
