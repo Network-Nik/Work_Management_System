@@ -152,6 +152,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      work_assignment_events: {
+        Row: {
+          id: string;
+          assignment_id: string;
+          actor_id: string | null;
+          event_type: Database["public"]["Enums"]["assignment_event_type"];
+          previous_state: Json | null;
+          new_state: Json | null;
+          comment: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          assignment_id: string;
+          actor_id?: string | null;
+          event_type: Database["public"]["Enums"]["assignment_event_type"];
+          previous_state?: Json | null;
+          new_state?: Json | null;
+          comment?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          assignment_id?: string;
+          actor_id?: string | null;
+          event_type?: Database["public"]["Enums"]["assignment_event_type"];
+          previous_state?: Json | null;
+          new_state?: Json | null;
+          comment?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;

@@ -17,7 +17,7 @@ async function sendNotification(
   recipient_id: string,
   actor_id: string,
   assignment_id: string,
-  type: string
+  type: "assigned" | "accepted" | "declined" | "completed" | "cancelled" | "deadline_override"
 ) {
   try {
     const { error } = await supabase.from("in_app_notifications").insert({
