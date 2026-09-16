@@ -1,5 +1,6 @@
 import { requireApprovedStaff } from "@/lib/auth/require-approved-staff";
 import { WorkspaceNav } from "@/app/dashboard/workspace-nav";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function DashboardLayout({
   children,
@@ -9,12 +10,18 @@ export default async function DashboardLayout({
   // Enforce authentication and approved staff status
   const staff = await requireApprovedStaff();
 
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("in_app_notifications")
+    .select('*', { count: 'exact', head: true })
+    .eq("is_read", false);
+
   return (
     <div className="workspace-theme min-h-dvh bg-[var(--background)] text-[var(--foreground)] selection:bg-indigo-500/30">
-      <WorkspaceNav staff={staff} />
-      
-      {/* 
-        Main content area 
+      <WorkspaceNav staff={staff} unreadCount={count ?? 0} />
+
+      {/*
+        Main content area
         Desktop: offset by sidebar width (64 * 4px = 256px)
         Mobile: offset by bottom tab bar (16 * 4px = 64px) + safe area
       */}

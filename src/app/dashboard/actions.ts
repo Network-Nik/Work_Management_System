@@ -58,7 +58,7 @@ export async function assignWork(formData: FormData) {
     }
 
     const supabase = await createClient();
-    
+
     // Create the assignment
     const { data: assignment, error } = await supabase
       .from("work_assignments")
@@ -95,7 +95,7 @@ export async function assignWork(formData: FormData) {
 export async function acceptWork(assignmentId: string, establishedDeadline: string) {
   try {
     const staff = await requireApprovedStaff();
-    
+
     if (!assignmentId || !isValidUUID(assignmentId)) {
       return { error: "Invalid assignment ID" };
     }
@@ -138,7 +138,7 @@ export async function acceptWork(assignmentId: string, establishedDeadline: stri
 export async function declineWork(assignmentId: string, reason: string) {
   try {
     const staff = await requireApprovedStaff();
-    
+
     const trimmedReason = reason?.trim();
     if (!assignmentId || !isValidUUID(assignmentId)) {
       return { error: "Invalid assignment ID" };
@@ -180,7 +180,7 @@ export async function declineWork(assignmentId: string, reason: string) {
 export async function completeWork(assignmentId: string) {
   try {
     const staff = await requireApprovedStaff();
-    
+
     if (!assignmentId || !isValidUUID(assignmentId)) {
       return { error: "Invalid assignment ID" };
     }
@@ -222,7 +222,7 @@ export async function completeWork(assignmentId: string) {
 export async function cancelWork(assignmentId: string, reason: string) {
   try {
     const staff = await requireApprovedStaff();
-    
+
     const trimmedReason = reason?.trim();
     if (!assignmentId || !isValidUUID(assignmentId)) {
       return { error: "Invalid assignment ID" };
@@ -264,7 +264,7 @@ export async function cancelWork(assignmentId: string, reason: string) {
 export async function overrideDeadline(assignmentId: string, newDeadline: string, reason: string) {
   try {
     const staff = await requireApprovedStaff();
-    
+
     const trimmedReason = reason?.trim();
     if (!assignmentId || !isValidUUID(assignmentId)) {
       return { error: "Invalid assignment ID" };
@@ -303,6 +303,59 @@ export async function overrideDeadline(assignmentId: string, newDeadline: string
     return { success: true };
   } catch (error) {
     console.error("Exception in overrideDeadline:", error);
+    return { error: "An unexpected error occurred" };
+  }
+}
+
+export async function markNotificationAsRead(id: string) {
+  try {
+    const staff = await requireApprovedStaff();
+    if (!isValidUUID(id)) return { error: "Invalid notification ID" };
+
+    const supabase = await createClient();
+
+    // We only pass is_read. We don't pass recipient_id because RLS already ensures
+    // the user can only update their own notifications.
+    const { error } = await supabase
+      .from("in_app_notifications")
+      .update({ is_read: true })
+      .eq("id", id);
+
+    if (error) {
+      console.error("Failed to mark notification as read:", error);
+      return { error: "Failed to mark notification as read" };
+    }
+
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (error) {
+    console.error("Exception in markNotificationAsRead:", error);
+    return { error: "An unexpected error occurred" };
+  }
+}
+
+export async function markAllNotificationsAsRead() {
+  try {
+    const staff = await requireApprovedStaff();
+    const supabase = await createClient();
+
+    // The update applies only to rows where the recipient_id matches auth.uid() due to RLS,
+    // but to be explicit and safe we specify the condition here as well, and only target unread.
+    const { error } = await supabase
+      .from("in_app_notifications")
+      .update({ is_read: true })
+      .eq("recipient_id", staff.user_id)
+      .eq("is_read", false);
+
+    if (error) {
+      console.error("Failed to mark all notifications as read:", error);
+      return { error: "Failed to mark notifications as read" };
+    }
+
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (error) {
+    console.error("Exception in markAllNotificationsAsRead:", error);
     return { error: "An unexpected error occurred" };
   }
 }

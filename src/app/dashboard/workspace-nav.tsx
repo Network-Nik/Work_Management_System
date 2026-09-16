@@ -8,9 +8,10 @@ import { useState } from "react";
 
 type WorkspaceNavProps = {
   staff: ApprovedStaff;
+  unreadCount: number;
 };
 
-export function WorkspaceNav({ staff }: WorkspaceNavProps) {
+export function WorkspaceNav({ staff, unreadCount }: WorkspaceNavProps) {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -45,19 +46,26 @@ export function WorkspaceNav({ staff }: WorkspaceNavProps) {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   isActive
                     ? "bg-zinc-800/80 text-zinc-100"
                     : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40"
                 }`}
               >
-                <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
-                  {item.name === "Admin" && (
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  )}
-                </svg>
-                {item.name}
+                <div className="flex items-center gap-3">
+                  <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
+                    {item.name === "Admin" && (
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    )}
+                  </svg>
+                  {item.name}
+                </div>
+                {item.name === "Notifications" && unreadCount > 0 && (
+                  <span className="bg-indigo-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                    {unreadCount}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -100,13 +108,18 @@ export function WorkspaceNav({ staff }: WorkspaceNavProps) {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${
+                className={`relative flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${
                   isActive ? "text-indigo-400" : "text-zinc-500 hover:text-zinc-300"
                 }`}
               >
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={isActive ? 2 : 1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
-                </svg>
+                <div className="relative">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={isActive ? 2 : 1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
+                  </svg>
+                  {item.name === "Notifications" && unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1.5 w-3 h-3 bg-indigo-500 rounded-full border-2 border-zinc-950" />
+                  )}
+                </div>
                 <span className="text-[10px] font-medium">{item.name}</span>
               </Link>
             );
