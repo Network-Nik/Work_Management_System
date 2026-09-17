@@ -11,3 +11,4 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.organization_members TO authentic
 DROP POLICY IF EXISTS "Administrators can manage staff profiles" ON public.staff_profiles;
 
 COMMIT;
+

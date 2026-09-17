@@ -156,7 +156,52 @@ export async function updateStaffRole(userId: string, role: string) {
     if (error.message.includes('last approved admin')) {
       return { error: "Cannot change the role of the last approved Admin." };
     }
+    if (error.message.includes('owner')) {
+      return { error: "Cannot modify the roles of an organization owner." };
+    }
     return { error: "Failed to update staff role." };
+  }
+
+  revalidatePath("/dashboard/admin");
+  return { success: true };
+}
+
+export async function addOwner(userId: string) {
+  const admin = await requireApprovedStaff();
+  if (!admin.isOwner) {
+    throw new Error("Unauthorized: Only owners can add new owners.");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("add_organization_owner", {
+    p_target_user_id: userId,
+    p_org_id: admin.activeOrgId,
+  });
+
+  if (error) {
+    console.error("Failed to add owner:", error);
+    return { error: error.message };
+  }
+
+  revalidatePath("/dashboard/admin");
+  return { success: true };
+}
+
+export async function removeOwner(userId: string) {
+  const admin = await requireApprovedStaff();
+  if (!admin.isOwner) {
+    throw new Error("Unauthorized: Only owners can remove owners.");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("remove_organization_owner", {
+    p_target_user_id: userId,
+    p_org_id: admin.activeOrgId,
+  });
+
+  if (error) {
+    console.error("Failed to remove owner:", error);
+    return { error: error.message };
   }
 
   revalidatePath("/dashboard/admin");

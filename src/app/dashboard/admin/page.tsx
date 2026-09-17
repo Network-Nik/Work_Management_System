@@ -4,6 +4,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { RegistrationActions } from "@/app/dashboard/admin/registration-actions";
 import { RoleSelector } from "@/app/dashboard/admin/role-selector";
+import { OwnershipControls } from "@/app/dashboard/admin/ownership-controls";
 
 export default async function AdminPage() {
   const staff = await requireApprovedStaff();
@@ -13,6 +14,16 @@ export default async function AdminPage() {
   }
   
   const supabase = await createClient();
+  
+  let owners: any[] = [];
+  if (staff.isOwner) {
+    const { data } = await supabase
+      .from("organization_owners")
+      .select("user_id, staff_profiles(email)")
+      .eq("organization_id", staff.activeOrgId);
+    owners = data || [];
+  }
+
   const { data: pendingStaff } = await supabase
     .from("staff_profiles")
     .select("user_id, email, whatsapp_number, created_at")
@@ -33,6 +44,14 @@ export default async function AdminPage() {
           Manage Allowlist
         </Link>
       </div>
+
+      {staff.isOwner && (
+        <OwnershipControls
+          currentUserId={staff.user_id}
+          owners={owners}
+          approvedStaff={approvedStaff || []}
+        />
+      )}
 
       <div className="mb-12">
         <h2 className="text-lg font-semibold text-zinc-200 mb-4">Pending Registrations</h2>

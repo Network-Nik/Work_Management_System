@@ -188,6 +188,98 @@ export type Database = {
           },
         ]
       }
+      organization_owner_audit: {
+        Row: {
+          action: Database["public"]["Enums"]["owner_audit_action"]
+          actor_id: string | null
+          created_at: string
+          id: string
+          organization_id: string
+          target_user_id: string
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["owner_audit_action"]
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          organization_id: string
+          target_user_id: string
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["owner_audit_action"]
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          organization_id?: string
+          target_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_owner_audit_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "organization_owner_audit_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_owner_audit_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      organization_owners: {
+        Row: {
+          assigned_by: string | null
+          created_at: string
+          organization_id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          created_at?: string
+          organization_id: string
+          user_id: string
+        }
+        Update: {
+          assigned_by?: string | null
+          created_at?: string
+          organization_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_owners_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "organization_owners_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_owners_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "staff_profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           created_at: string
@@ -503,6 +595,10 @@ export type Database = {
         Args: { p_established_deadline: string; p_id: string }
         Returns: undefined
       }
+      add_organization_owner: {
+        Args: { p_org_id: string; p_target_user_id: string }
+        Returns: undefined
+      }
       bootstrap_first_admin: {
         Args: { whatsapp_num: string }
         Returns: undefined
@@ -521,6 +617,7 @@ export type Database = {
       is_manager_or_admin: { Args: never; Returns: boolean }
       is_org_admin: { Args: { p_org_id: string }; Returns: boolean }
       is_org_manager: { Args: { p_org_id: string }; Returns: boolean }
+      is_org_owner: { Args: { p_org_id: string }; Returns: boolean }
       is_staff_admin: { Args: never; Returns: boolean }
       is_staff_manager: { Args: never; Returns: boolean }
       override_deadline: {
@@ -529,6 +626,10 @@ export type Database = {
       }
       register_staff_profile: {
         Args: { p_whatsapp_number: string }
+        Returns: undefined
+      }
+      remove_organization_owner: {
+        Args: { p_org_id: string; p_target_user_id: string }
         Returns: undefined
       }
       update_staff_role: {
@@ -557,6 +658,7 @@ export type Database = {
         | "completed"
         | "cancelled"
         | "deadline_override"
+      owner_audit_action: "added" | "removed"
       staff_access_status: "pending" | "approved" | "rejected"
       staff_role: "admin" | "manager" | "employee"
       task_priority: "low" | "medium" | "high" | "urgent"
@@ -713,6 +815,7 @@ export const Constants = {
         "cancelled",
         "deadline_override",
       ],
+      owner_audit_action: ["added", "removed"],
       staff_access_status: ["pending", "approved", "rejected"],
       staff_role: ["admin", "manager", "employee"],
       task_priority: ["low", "medium", "high", "urgent"],

@@ -11,6 +11,7 @@ export type ApprovedStaff = {
   approved_by: string | null;
   approved_at: string | null;
   activeOrgId: string;
+  isOwner: boolean;
 };
 
 /**
@@ -65,5 +66,15 @@ export async function requireApprovedStaff(): Promise<ApprovedStaff> {
 
   const activeOrgId = await resolveActiveOrganization(supabase, user.id);
 
-  return { ...profile, activeOrgId } as ApprovedStaff;
+  // Determine ownership for the active organization
+  const { data: ownerRecord } = await supabase
+    .from("organization_owners")
+    .select("user_id")
+    .eq("organization_id", activeOrgId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const isOwner = !!ownerRecord;
+
+  return { ...profile, activeOrgId, isOwner } as ApprovedStaff;
 }
