@@ -45,8 +45,15 @@ export default async function PendingPage() {
     redirect("/register");
   }
 
-  // 5. Handle rejected state
-  if (profile.access_status === "rejected") {
+  // 5. Determine if user is fully rejected (all memberships rejected)
+  const { data: memberships } = await supabase
+    .from("organization_members")
+    .select("access_status")
+    .eq("user_id", user.id);
+
+  const isRejected = memberships && memberships.length > 0 && memberships.every(m => m.access_status === "rejected");
+
+  if (isRejected) {
     return (
       <main className="flex min-h-dvh flex-1 items-center justify-center bg-slate-50 px-4 py-6 sm:px-6 sm:py-12">
         <section className="w-full max-w-md rounded-2xl border border-rose-200 bg-white p-6 shadow-sm sm:p-8">

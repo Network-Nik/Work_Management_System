@@ -11,33 +11,15 @@ export async function approveStaff(userId: string) {
   }
 
   const supabase = await createClient();
-  // 1. Update organization_members
-  const { error: orgError } = await supabase
-    .from("organization_members")
-    .update({
-      access_status: "approved",
-      approved_by: admin.user_id,
-      approved_at: new Date().toISOString(),
-    })
-    .eq("user_id", userId)
-    .eq("organization_id", admin.activeOrgId)
-    .eq("access_status", "pending");
+  const { error } = await supabase.rpc("admin_approve_staff_member", {
+    p_target_user_id: userId,
+    p_org_id: admin.activeOrgId,
+  });
 
-  if (orgError) {
-    console.error("Failed to approve staff in org:", orgError);
+  if (error) {
+    console.error("Failed to approve staff member:", error);
     return { error: "Failed to approve staff member" };
   }
-
-  // 2. Legacy fallback update
-  await supabase
-    .from("staff_profiles")
-    .update({
-      access_status: "approved",
-      approved_by: admin.user_id,
-      approved_at: new Date().toISOString(),
-    })
-    .eq("user_id", userId)
-    .eq("access_status", "pending");
 
   revalidatePath("/dashboard");
   return { success: true };
@@ -50,27 +32,15 @@ export async function rejectStaff(userId: string) {
   }
 
   const supabase = await createClient();
-  const { error: orgError } = await supabase
-    .from("organization_members")
-    .update({
-      access_status: "rejected",
-    })
-    .eq("user_id", userId)
-    .eq("organization_id", admin.activeOrgId)
-    .eq("access_status", "pending");
+  const { error } = await supabase.rpc("admin_reject_staff_member", {
+    p_target_user_id: userId,
+    p_org_id: admin.activeOrgId,
+  });
 
-  if (orgError) {
-    console.error("Failed to reject staff in org:", orgError);
+  if (error) {
+    console.error("Failed to reject staff member:", error);
     return { error: "Failed to reject staff member" };
   }
-
-  await supabase
-    .from("staff_profiles")
-    .update({
-      access_status: "rejected",
-    })
-    .eq("user_id", userId)
-    .eq("access_status", "pending");
 
   revalidatePath("/dashboard");
   return { success: true };

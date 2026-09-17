@@ -1,4 +1,4 @@
-﻿import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
 export type ApprovedStaff = {
@@ -61,7 +61,6 @@ export async function requireApprovedStaff(): Promise<ApprovedStaff> {
       "user_id, email, whatsapp_number, whatsapp_status, access_status, role, approved_by, approved_at",
     )
     .eq("user_id", user.id)
-    .eq("access_status", "approved")
     .maybeSingle();
 
   if (profileError || !profile) {

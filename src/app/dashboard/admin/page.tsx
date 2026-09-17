@@ -17,24 +17,34 @@ export default async function AdminPage() {
   
   let owners: any[] = [];
   if (staff.isOwner) {
-    const { data } = await supabase
+    const { data: ownerRows } = await supabase
       .from("organization_owners")
-      .select("user_id, staff_profiles(email)")
+      .select("user_id")
       .eq("organization_id", staff.activeOrgId);
-    owners = data || [];
+
+    if (ownerRows && ownerRows.length > 0) {
+      const ownerIds = ownerRows.map((o: any) => o.user_id);
+      const { data: contacts } = await supabase.rpc("get_org_member_contacts", {
+        p_org_id: staff.activeOrgId,
+        p_user_ids: ownerIds,
+      });
+      const contactMap = new Map((contacts || []).map((c: any) => [c.user_id, c.email]));
+      owners = ownerRows.map((o: any) => ({
+        user_id: o.user_id,
+        staff_profiles: { email: contactMap.get(o.user_id) || "Unknown" },
+      }));
+    }
   }
 
-  const { data: pendingStaff } = await supabase
-    .from("staff_profiles")
-    .select("user_id, email, whatsapp_number, created_at")
-    .eq("access_status", "pending")
-    .order("created_at", { ascending: true });
+  const { data: pendingStaff } = await supabase.rpc("get_org_staff_profiles", {
+    p_org_id: staff.activeOrgId,
+    p_access_status: "pending",
+  });
 
-  const { data: approvedStaff } = await supabase
-    .from("staff_profiles")
-    .select("user_id, email, role, whatsapp_number")
-    .eq("access_status", "approved")
-    .order("email", { ascending: true });
+  const { data: approvedStaff } = await supabase.rpc("get_org_staff_profiles", {
+    p_org_id: staff.activeOrgId,
+    p_access_status: "approved",
+  });
 
   return (
     <div className="max-w-4xl mx-auto">

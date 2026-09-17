@@ -23,8 +23,7 @@ export default async function PeopleDirectoryPage() {
       username,
       job_title,
       role,
-      department_id,
-      staff_profiles (email, whatsapp_number)
+      department_id
     `)
     .eq("organization_id", staff.activeOrgId)
     .eq("access_status", "approved")
@@ -32,6 +31,21 @@ export default async function PeopleDirectoryPage() {
 
   // Determine if viewer is admin/owner
   const isPrivileged = staff.role === "admin" || staff.isOwner;
+
+  // For privileged users, fetch contact info via secure RPC
+  let contactMap = new Map<string, { email: string; whatsapp_number: string | null }>();
+  if (isPrivileged && members && members.length > 0) {
+    const userIds = members.map((m: any) => m.user_id);
+    const { data: contacts } = await supabase.rpc("get_org_member_contacts", {
+      p_org_id: staff.activeOrgId,
+      p_user_ids: userIds,
+    });
+    if (contacts) {
+      for (const c of contacts) {
+        contactMap.set(c.user_id, { email: c.email, whatsapp_number: c.whatsapp_number });
+      }
+    }
+  }
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -73,14 +87,14 @@ export default async function PeopleDirectoryPage() {
                 )}
               </div>
 
-              {isPrivileged && member.staff_profiles && (
+              {isPrivileged && contactMap.has(member.user_id) && (
                 <div className="mt-4 pt-4 border-t border-zinc-800/50 space-y-1">
                   <p className="text-xs text-zinc-500 truncate">
-                    <span className="font-medium">Email:</span> {member.staff_profiles.email}
+                    <span className="font-medium">Email:</span> {contactMap.get(member.user_id)!.email}
                   </p>
-                  {member.staff_profiles.whatsapp_number && (
+                  {contactMap.get(member.user_id)!.whatsapp_number && (
                     <p className="text-xs text-zinc-500 truncate">
-                      <span className="font-medium">WhatsApp:</span> {member.staff_profiles.whatsapp_number}
+                      <span className="font-medium">WhatsApp:</span> {contactMap.get(member.user_id)!.whatsapp_number}
                     </p>
                   )}
                 </div>

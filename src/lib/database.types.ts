@@ -656,6 +656,14 @@ export type Database = {
         Args: { p_org_id: string; p_target_user_id: string }
         Returns: undefined
       }
+      admin_approve_staff_member: {
+        Args: { p_org_id: string; p_target_user_id: string }
+        Returns: undefined
+      }
+      admin_reject_staff_member: {
+        Args: { p_org_id: string; p_target_user_id: string }
+        Returns: undefined
+      }
       admin_update_member_profile: {
         Args: { p_org_id: string; p_target_user_id: string; p_updates: Json }
         Returns: undefined
@@ -672,6 +680,27 @@ export type Database = {
       decline_work: {
         Args: { p_id: string; p_reason: string }
         Returns: undefined
+      }
+      get_org_member_contacts: {
+        Args: { p_org_id: string; p_user_ids: string[] }
+        Returns: {
+          email: string
+          user_id: string
+          whatsapp_number: string
+        }[]
+      }
+      get_org_staff_profiles: {
+        Args: {
+          p_access_status: Database["public"]["Enums"]["staff_access_status"]
+          p_org_id: string
+        }
+        Returns: {
+          created_at: string
+          email: string
+          role: Database["public"]["Enums"]["staff_role"]
+          user_id: string
+          whatsapp_number: string
+        }[]
       }
       has_system_admins: { Args: never; Returns: boolean }
       is_approved_staff_email: { Args: never; Returns: boolean }

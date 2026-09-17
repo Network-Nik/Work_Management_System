@@ -1,4 +1,4 @@
-﻿import { requireApprovedStaff } from "@/lib/auth/require-approved-staff";
+import { requireApprovedStaff } from "@/lib/auth/require-approved-staff";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Suspense } from "react";
@@ -36,16 +36,30 @@ async function DashboardGreeting() {
         role,
         display_name,
         username,
-        job_title,
-        staff_profiles(email)
+        job_title
       `)
       .eq("organization_id", staff.activeOrgId)
       .eq("access_status", "approved");
 
     if (data) {
+      // For admins/owners, fetch emails via secure RPC
+      let emailMap = new Map<string, string>();
+      if (staff.role === "admin" || staff.isOwner) {
+        const userIds = data.map((d: any) => d.user_id);
+        const { data: contacts } = await supabase.rpc("get_org_member_contacts", {
+          p_org_id: staff.activeOrgId,
+          p_user_ids: userIds,
+        });
+        if (contacts) {
+          for (const c of contacts) {
+            emailMap.set(c.user_id, c.email);
+          }
+        }
+      }
+
       staffList = data.map((d: any) => ({
         user_id: d.user_id,
-        email: d.staff_profiles?.email || "",
+        email: emailMap.get(d.user_id) || "",
         role: d.role,
         display_name: d.display_name,
         username: d.username,
@@ -360,12 +374,12 @@ async function RecentActivityCard() {
 }
 
 async function PendingRegistrationsCard() {
+  const staff = await requireApprovedStaff();
   const supabase = await createClient();
-  const { data: pendingStaff } = await supabase
-    .from("staff_profiles")
-    .select("user_id, email, whatsapp_number, created_at")
-    .eq("access_status", "pending")
-    .order("created_at", { ascending: true });
+  const { data: pendingStaff } = await supabase.rpc("get_org_staff_profiles", {
+    p_org_id: staff.activeOrgId,
+    p_access_status: "pending",
+  });
 
   return (
     <CardFrame title="Pending Approvals" action={<Link href="/dashboard/admin" className="text-xs font-medium text-indigo-400 hover:text-indigo-300 transition">Manage all</Link>}>
