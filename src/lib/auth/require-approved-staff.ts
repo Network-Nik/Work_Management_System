@@ -10,12 +10,33 @@ export type ApprovedStaff = {
   role: "admin" | "manager" | "employee";
   approved_by: string | null;
   approved_at: string | null;
+  activeOrgId: string;
 };
+
+/**
+ * Resolves the active organization context for the authenticated user.
+ * V1 Behavior: If exactly 1 approved org, returns it. If > 1, throws explicit context error. If 0, throws unauthorized.
+ */
+export async function resolveActiveOrganization(supabase: any, userId: string): Promise<string> {
+  const { data: memberships, error } = await supabase
+    .from("organization_members")
+    .select("organization_id")
+    .eq("user_id", userId)
+    .eq("access_status", "approved");
+
+  if (error || !memberships || memberships.length === 0) {
+    throw new Error("Approved organization membership is required.");
+  }
+  if (memberships.length > 1) {
+    throw new Error("Explicit organization context required. Multiple memberships found.");
+  }
+  return memberships[0].organization_id;
+}
 
 /**
  * Ensures the current user is authenticated and has an approved staff profile.
  * Redirects to /login or /pending if not.
- * Returns the staff profile data.
+ * Returns the staff profile data with active organization context.
  */
 export async function requireApprovedStaff(): Promise<ApprovedStaff> {
   const supabase = await createClient();
@@ -42,5 +63,7 @@ export async function requireApprovedStaff(): Promise<ApprovedStaff> {
     throw new Error("Approved staff access is required.");
   }
 
-  return profile as ApprovedStaff;
+  const activeOrgId = await resolveActiveOrganization(supabase, user.id);
+
+  return { ...profile, activeOrgId } as ApprovedStaff;
 }

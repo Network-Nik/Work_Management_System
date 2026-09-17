@@ -63,6 +63,7 @@ export async function assignWork(formData: FormData) {
     const { data: assignment, error } = await supabase
       .from("work_assignments")
       .insert({
+        organization_id: staff.activeOrgId,
         title,
         description,
         reference_id,

@@ -11,7 +11,25 @@ export async function approveStaff(userId: string) {
   }
 
   const supabase = await createClient();
-  const { error } = await supabase
+  // 1. Update organization_members
+  const { error: orgError } = await supabase
+    .from("organization_members")
+    .update({
+      access_status: "approved",
+      approved_by: admin.user_id,
+      approved_at: new Date().toISOString(),
+    })
+    .eq("user_id", userId)
+    .eq("organization_id", admin.activeOrgId)
+    .eq("access_status", "pending");
+
+  if (orgError) {
+    console.error("Failed to approve staff in org:", orgError);
+    return { error: "Failed to approve staff member" };
+  }
+
+  // 2. Legacy fallback update
+  await supabase
     .from("staff_profiles")
     .update({
       access_status: "approved",
@@ -19,12 +37,7 @@ export async function approveStaff(userId: string) {
       approved_at: new Date().toISOString(),
     })
     .eq("user_id", userId)
-    .eq("access_status", "pending"); // Only approve pending
-
-  if (error) {
-    console.error("Failed to approve staff:", error);
-    return { error: "Failed to approve staff member" };
-  }
+    .eq("access_status", "pending");
 
   revalidatePath("/dashboard");
   return { success: true };
@@ -37,18 +50,27 @@ export async function rejectStaff(userId: string) {
   }
 
   const supabase = await createClient();
-  const { error } = await supabase
+  const { error: orgError } = await supabase
+    .from("organization_members")
+    .update({
+      access_status: "rejected",
+    })
+    .eq("user_id", userId)
+    .eq("organization_id", admin.activeOrgId)
+    .eq("access_status", "pending");
+
+  if (orgError) {
+    console.error("Failed to reject staff in org:", orgError);
+    return { error: "Failed to reject staff member" };
+  }
+
+  await supabase
     .from("staff_profiles")
     .update({
       access_status: "rejected",
     })
     .eq("user_id", userId)
-    .eq("access_status", "pending"); // Only reject pending
-
-  if (error) {
-    console.error("Failed to reject staff:", error);
-    return { error: "Failed to reject staff member" };
-  }
+    .eq("access_status", "pending");
 
   revalidatePath("/dashboard");
   return { success: true };
@@ -69,6 +91,7 @@ export async function addAllowlistEmail(email: string) {
   const { error } = await supabase
     .from("approved_staff_emails")
     .insert({
+      organization_id: admin.activeOrgId,
       email: trimmedEmail.toLowerCase(),
       added_by: admin.user_id,
     });
@@ -98,6 +121,7 @@ export async function removeAllowlistEmail(email: string) {
   const { error } = await supabase
     .from("approved_staff_emails")
     .delete()
+    .eq("organization_id", admin.activeOrgId)
     .eq("email", trimmedEmail);
 
   if (error) {
@@ -123,6 +147,7 @@ export async function updateStaffRole(userId: string, role: string) {
   const supabase = await createClient();
   const { error } = await supabase.rpc("update_staff_role", {
     target_user_id: userId,
+    target_org_id: admin.activeOrgId,
     new_role: role as "admin" | "manager" | "employee",
   });
 

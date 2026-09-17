@@ -87,21 +87,17 @@ export async function registerStaffProfile(
     };
   }
 
-  // 5. Insert staff profile using existing schema & RLS policies
-  const userEmail = user.email.toLowerCase().trim();
-
-  const { error: insertError } = await supabase.from("staff_profiles").insert({
-    user_id: user.id,
-    email: userEmail,
-    whatsapp_number: normalized,
-    access_status: "pending",
-    whatsapp_status: "pending",
-    role: 'employee',
-    approved_by: null,
-    approved_at: null,
+  // 5. Insert staff profile using the secure RPC
+  const { error: insertError } = await supabase.rpc("register_staff_profile", {
+    p_whatsapp_number: normalized,
   });
 
   if (insertError) {
+    if (insertError.message.includes("allowlisted")) {
+      return {
+        error: "Registration rejected by security policy. Your email may not be on the approved allowlist.",
+      };
+    }
     // Unique violation (error code 23505)
     if (insertError.code === "23505") {
       const message = insertError.message.toLowerCase();
@@ -121,14 +117,6 @@ export async function registerStaffProfile(
       return {
         error:
           "Invalid WhatsApp number format. Please ensure it begins with a country code (e.g. +94771234567).",
-      };
-    }
-
-    // RLS or permission error (error code 42501)
-    if (insertError.code === "42501") {
-      return {
-        error:
-          "Registration rejected by security policy. Your email may not be on the approved allowlist.",
       };
     }
 
