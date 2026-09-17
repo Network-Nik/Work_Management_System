@@ -13,19 +13,33 @@ type NotificationItem = {
 };
 
 async function NotificationInbox() {
+  const staff = await requireApprovedStaff();
   const supabase = await createClient();
 
   const { data: notifications } = await supabase
     .from("in_app_notifications")
     .select(`
-      id, type, is_read, created_at,
-      actor:staff_profiles!actor_id(email),
+      id, type, is_read, created_at, actor_id,
       assignment:work_assignments!assignment_id(title)
     `)
     .order("created_at", { ascending: false })
     .limit(50);
 
-  const items = (notifications ?? []) as unknown as NotificationItem[];
+  const actorIds = [...new Set((notifications || []).map((n: any) => n.actor_id))].filter(Boolean);
+  let actorsMap = new Map();
+  if (actorIds.length > 0) {
+    const { data: members } = await supabase
+      .from("organization_members")
+      .select("user_id, display_name, username")
+      .eq("organization_id", staff.activeOrgId)
+      .in("user_id", actorIds);
+    actorsMap = new Map((members || []).map(m => [m.user_id, m]));
+  }
+
+  const items = (notifications ?? []).map((n: any) => ({
+    ...n,
+    actor: { email: actorsMap.get(n.actor_id)?.display_name || actorsMap.get(n.actor_id)?.username || "?" }
+  })) as unknown as NotificationItem[];
 
   return (
     <section className="flex flex-col bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden p-6">

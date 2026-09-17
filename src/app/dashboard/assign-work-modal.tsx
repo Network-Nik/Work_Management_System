@@ -8,6 +8,9 @@ type StaffMember = {
   user_id: string;
   email: string;
   role: string;
+  display_name?: string | null;
+  username?: string | null;
+  job_title?: string | null;
 };
 
 export function AssignWorkModal({ staffList }: { staffList: StaffMember[] }) {
@@ -71,11 +74,15 @@ export function AssignWorkModal({ staffList }: { staffList: StaffMember[] }) {
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-100 focus:outline-none focus:border-indigo-500 transition appearance-none"
                   >
                     <option value="">Select a team member...</option>
-                    {staffList.map((staff) => (
-                      <option key={staff.user_id} value={staff.user_id}>
-                        {staff.email} ({staff.role})
-                      </option>
-                    ))}
+                    {staffList.map((staff) => {
+                      const displayName = staff.display_name ? `${staff.display_name} (@${staff.username})` : staff.email;
+                      const title = staff.job_title ? ` - ${staff.job_title}` : '';
+                      return (
+                        <option key={staff.user_id} value={staff.user_id}>
+                          {displayName}{title}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
 

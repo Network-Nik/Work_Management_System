@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+﻿import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
 export type ApprovedStaff = {
@@ -12,6 +12,10 @@ export type ApprovedStaff = {
   approved_at: string | null;
   activeOrgId: string;
   isOwner: boolean;
+  display_name: string | null;
+  username: string | null;
+  job_title: string | null;
+  department_id: string | null;
 };
 
 /**
@@ -66,6 +70,14 @@ export async function requireApprovedStaff(): Promise<ApprovedStaff> {
 
   const activeOrgId = await resolveActiveOrganization(supabase, user.id);
 
+  // Fetch the organization-scoped profile fields
+  const { data: orgProfile } = await supabase
+    .from("organization_members")
+    .select("display_name, username, job_title, department_id")
+    .eq("organization_id", activeOrgId)
+    .eq("user_id", user.id)
+    .single();
+
   // Determine ownership for the active organization
   const { data: ownerRecord } = await supabase
     .from("organization_owners")
@@ -76,5 +88,13 @@ export async function requireApprovedStaff(): Promise<ApprovedStaff> {
 
   const isOwner = !!ownerRecord;
 
-  return { ...profile, activeOrgId, isOwner } as ApprovedStaff;
+  return {
+    ...profile,
+    activeOrgId,
+    isOwner,
+    display_name: orgProfile?.display_name ?? null,
+    username: orgProfile?.username ?? null,
+    job_title: orgProfile?.job_title ?? null,
+    department_id: orgProfile?.department_id ?? null
+  } as ApprovedStaff;
 }

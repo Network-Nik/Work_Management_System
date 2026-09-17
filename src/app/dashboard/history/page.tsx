@@ -4,19 +4,33 @@ import { Suspense } from "react";
 import { HistoryTimeline, TimelineEvent } from "./history-timeline";
 
 async function HistoryFeed() {
+  const staff = await requireApprovedStaff();
   const supabase = await createClient();
 
   const { data: events } = await supabase
     .from("work_assignment_events")
     .select(`
-      id, event_type, comment, created_at,
-      actor:staff_profiles!actor_id(email),
+      id, event_type, comment, created_at, actor_id,
       assignment:work_assignments!assignment_id(title, reference_id)
     `)
     .order("created_at", { ascending: false })
     .limit(100);
 
-  const items = (events ?? []) as unknown as TimelineEvent[];
+  const actorIds = [...new Set((events || []).map((e: any) => e.actor_id))].filter(Boolean);
+  let actorsMap = new Map();
+  if (actorIds.length > 0) {
+    const { data: members } = await supabase
+      .from("organization_members")
+      .select("user_id, display_name, username")
+      .eq("organization_id", staff.activeOrgId)
+      .in("user_id", actorIds);
+    actorsMap = new Map((members || []).map(m => [m.user_id, m]));
+  }
+
+  const items = (events ?? []).map((e: any) => ({
+    ...e,
+    actor: { email: actorsMap.get(e.actor_id)?.display_name || actorsMap.get(e.actor_id)?.username || "?" }
+  })) as unknown as TimelineEvent[];
 
   return (
     <section className="flex flex-col bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden p-4 sm:p-6">

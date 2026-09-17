@@ -1,6 +1,7 @@
-import { requireApprovedStaff } from "@/lib/auth/require-approved-staff";
+﻿import { requireApprovedStaff } from "@/lib/auth/require-approved-staff";
 import { WorkspaceNav } from "@/app/dashboard/workspace-nav";
 import { createClient } from "@/lib/supabase/server";
+import { ProfileSetupGuard } from "@/app/dashboard/profile-setup-guard";
 
 export default async function DashboardLayout({
   children,
@@ -10,6 +11,8 @@ export default async function DashboardLayout({
   // Enforce authentication and approved staff status
   const staff = await requireApprovedStaff();
 
+  const isProfileComplete = !!(staff.display_name && staff.username);
+
   const supabase = await createClient();
   const { count } = await supabase
     .from("in_app_notifications")
@@ -18,6 +21,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="workspace-theme min-h-dvh bg-[var(--background)] text-[var(--foreground)] selection:bg-indigo-500/30">
+      <ProfileSetupGuard isComplete={isProfileComplete} />
       <WorkspaceNav staff={staff} unreadCount={count ?? 0} />
 
       {/*

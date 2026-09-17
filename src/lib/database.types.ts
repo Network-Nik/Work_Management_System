@@ -46,6 +46,44 @@ export type Database = {
           },
         ]
       }
+      departments: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "departments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       in_app_notifications: {
         Row: {
           actor_id: string | null
@@ -139,32 +177,51 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           created_at: string
+          department_id: string | null
+          display_name: string | null
+          job_title: string | null
           organization_id: string
           role: Database["public"]["Enums"]["staff_role"]
           updated_at: string
           user_id: string
+          username: string | null
         }
         Insert: {
           access_status?: Database["public"]["Enums"]["staff_access_status"]
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string
+          department_id?: string | null
+          display_name?: string | null
+          job_title?: string | null
           organization_id: string
           role?: Database["public"]["Enums"]["staff_role"]
           updated_at?: string
           user_id: string
+          username?: string | null
         }
         Update: {
           access_status?: Database["public"]["Enums"]["staff_access_status"]
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string
+          department_id?: string | null
+          display_name?: string | null
+          job_title?: string | null
           organization_id?: string
           role?: Database["public"]["Enums"]["staff_role"]
           updated_at?: string
           user_id?: string
+          username?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_org_dept"
+            columns: ["department_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id", "organization_id"]
+          },
           {
             foreignKeyName: "organization_members_approved_by_fkey"
             columns: ["approved_by"]
@@ -599,6 +656,10 @@ export type Database = {
         Args: { p_org_id: string; p_target_user_id: string }
         Returns: undefined
       }
+      admin_update_member_profile: {
+        Args: { p_org_id: string; p_target_user_id: string; p_updates: Json }
+        Returns: undefined
+      }
       bootstrap_first_admin: {
         Args: { whatsapp_num: string }
         Returns: undefined
@@ -620,6 +681,16 @@ export type Database = {
       is_org_owner: { Args: { p_org_id: string }; Returns: boolean }
       is_staff_admin: { Args: never; Returns: boolean }
       is_staff_manager: { Args: never; Returns: boolean }
+      manage_department: {
+        Args: {
+          p_dept_id?: string
+          p_description?: string
+          p_is_active?: boolean
+          p_name: string
+          p_org_id: string
+        }
+        Returns: string
+      }
       override_deadline: {
         Args: { p_id: string; p_new_deadline: string; p_reason: string }
         Returns: undefined
@@ -630,6 +701,10 @@ export type Database = {
       }
       remove_organization_owner: {
         Args: { p_org_id: string; p_target_user_id: string }
+        Returns: undefined
+      }
+      update_self_profile: {
+        Args: { p_display_name: string; p_org_id: string; p_username: string }
         Returns: undefined
       }
       update_staff_role: {

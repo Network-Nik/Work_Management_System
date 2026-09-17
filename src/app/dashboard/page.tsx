@@ -1,4 +1,4 @@
-import { requireApprovedStaff } from "@/lib/auth/require-approved-staff";
+﻿import { requireApprovedStaff } from "@/lib/auth/require-approved-staff";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Suspense } from "react";
@@ -25,17 +25,32 @@ function formatDate(isoString: string) {
 
 async function DashboardGreeting() {
   const staff = await requireApprovedStaff();
-  let staffList: { user_id: string, email: string, role: string }[] = [];
+  let staffList: any[] = [];
 
   if (staff.role === "admin" || staff.role === "manager") {
     const supabase = await createClient();
     const { data } = await supabase
-      .from("staff_profiles")
-      .select("user_id, email, role")
-      .eq("access_status", "approved")
-      .order("email");
+      .from("organization_members")
+      .select(`
+        user_id,
+        role,
+        display_name,
+        username,
+        job_title,
+        staff_profiles(email)
+      `)
+      .eq("organization_id", staff.activeOrgId)
+      .eq("access_status", "approved");
+
     if (data) {
-      staffList = data;
+      staffList = data.map((d: any) => ({
+        user_id: d.user_id,
+        email: d.staff_profiles?.email || "",
+        role: d.role,
+        display_name: d.display_name,
+        username: d.username,
+        job_title: d.job_title
+      })).sort((a, b) => (a.display_name || a.email).localeCompare(b.display_name || b.email));
     }
   }
 
@@ -89,15 +104,31 @@ async function ActionRequiredCard() {
     .from("work_assignments")
     .select(`
       id, title, reference_id, description, assigned_at, target_deadline,
-      assigner:staff_profiles!assigner_id(email)
+      assigner_id
     `)
     .eq("assignee_id", staff.user_id)
     .eq("status", "pending")
     .order("assigned_at", { ascending: false });
 
+  const allUserIds = [...new Set((assignments || []).map((a: any) => a.assigner_id))].filter(Boolean);
+  let userMap = new Map();
+  if (allUserIds.length > 0) {
+    const { data: members } = await supabase
+      .from("organization_members")
+      .select("user_id, display_name, username")
+      .eq("organization_id", staff.activeOrgId)
+      .in("user_id", allUserIds);
+    userMap = new Map((members || []).map(m => [m.user_id, m]));
+  }
+
+  const items = (assignments ?? []).map((a: any) => ({
+    ...a,
+    assigner: { email: userMap.get(a.assigner_id)?.display_name || userMap.get(a.assigner_id)?.username || "?" }
+  }));
+
   return (
     <CardFrame title="Action Required">
-      {!assignments || assignments.length === 0 ? (
+      {!items || items.length === 0 ? (
         <EmptyState
           message="Nothing needs your attention right now."
           icon={
@@ -108,7 +139,7 @@ async function ActionRequiredCard() {
         />
       ) : (
         <div className="flex flex-col gap-4">
-          {assignments.map((a) => (
+          {items.map((a) => (
             <div key={a.id} className="p-4 rounded-xl border border-zinc-800 bg-zinc-900/50">
               <div className="flex justify-between items-start mb-2">
                 <div>
@@ -149,26 +180,42 @@ async function ActiveWorkCard() {
     .from("work_assignments")
     .select(`
       id, title, reference_id, description, established_deadline, status,
-      assigner:staff_profiles!assigner_id(email)
+      assigner_id
     `)
     .eq("assignee_id", staff.user_id)
     .eq("status", "active")
-    .order("established_deadline", { ascending: true });
+    .order("established_deadline", { ascending: true, nullsFirst: false });
+
+  const allUserIds = [...new Set((assignments || []).map((a: any) => a.assigner_id))].filter(Boolean);
+  let userMap = new Map();
+  if (allUserIds.length > 0) {
+    const { data: members } = await supabase
+      .from("organization_members")
+      .select("user_id, display_name, username")
+      .eq("organization_id", staff.activeOrgId)
+      .in("user_id", allUserIds);
+    userMap = new Map((members || []).map(m => [m.user_id, m]));
+  }
+
+  const items2 = (assignments ?? []).map((a: any) => ({
+    ...a,
+    assigner: { email: userMap.get(a.assigner_id)?.display_name || userMap.get(a.assigner_id)?.username || "?" }
+  }));
 
   return (
-    <CardFrame title="Active Work">
-      {!assignments || assignments.length === 0 ? (
+    <CardFrame title="Active Assignments">
+      {!items2 || items2.length === 0 ? (
         <EmptyState
-          message="You don't have any active work."
+          message="You don't have any active assignments."
           icon={
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 13l4 4L19 7" />
             </svg>
           }
         />
       ) : (
         <div className="flex flex-col gap-4">
-          {assignments.map((a) => (
+          {items2.map((a) => (
             <div key={a.id} className="p-4 rounded-xl border border-zinc-800 bg-zinc-900/50">
               <div className="flex justify-between items-start mb-2">
                 <div>
@@ -240,21 +287,37 @@ const eventLabels: Record<string, { label: string; color: string }> = {
 };
 
 async function RecentActivityCard() {
+  const staff = await requireApprovedStaff();
   const supabase = await createClient();
 
   const { data: events } = await supabase
     .from("work_assignment_events")
     .select(`
-      id, event_type, created_at, comment,
-      assignment:work_assignments!assignment_id(title),
-      actor:staff_profiles!actor_id(email)
+      id, event_type, created_at, comment, actor_id,
+      assignment:work_assignments!assignment_id(title)
     `)
     .order("created_at", { ascending: false })
     .limit(10);
 
+  const actorIds = [...new Set((events || []).map((e: any) => e.actor_id))].filter(Boolean);
+  let actorsMap = new Map();
+  if (actorIds.length > 0) {
+    const { data: members } = await supabase
+      .from("organization_members")
+      .select("user_id, display_name, username")
+      .eq("organization_id", staff.activeOrgId)
+      .in("user_id", actorIds);
+    actorsMap = new Map((members || []).map(m => [m.user_id, m]));
+  }
+
+  const items = (events ?? []).map((e: any) => ({
+    ...e,
+    actor: { email: actorsMap.get(e.actor_id)?.display_name || actorsMap.get(e.actor_id)?.username || "?" }
+  }));
+
   return (
     <CardFrame title="Recent Activity" action={<Link href="/dashboard/history" className="text-xs font-medium text-indigo-400 hover:text-indigo-300 transition">View all</Link>}>
-      {!events || events.length === 0 ? (
+      {!items || items.length === 0 ? (
         <EmptyState
           message="No recent activity to show."
           icon={
@@ -265,7 +328,7 @@ async function RecentActivityCard() {
         />
       ) : (
         <div className="flex flex-col gap-3">
-          {events.map((event) => {
+          {items.map((event) => {
             const meta = eventLabels[event.event_type] ?? { label: event.event_type, color: "text-zinc-400" };
             const assignmentTitle = (event.assignment as unknown as { title: string } | null)?.title ?? "Unknown";
             const actorEmail = (event.actor as unknown as { email: string } | null)?.email;
@@ -276,7 +339,7 @@ async function RecentActivityCard() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-zinc-200 truncate">
                     <span className={`font-medium ${meta.color}`}>{meta.label}</span>
-                    {" · "}
+                    {" Â· "}
                     <span className="text-zinc-300">{assignmentTitle}</span>
                   </p>
                   {actorEmail && (

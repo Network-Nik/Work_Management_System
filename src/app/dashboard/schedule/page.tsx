@@ -102,20 +102,36 @@ type ActiveAssignment = {
 };
 
 async function ActiveWorkSection() {
+  const staff = await requireApprovedStaff();
   const supabase = await createClient();
 
   const { data: assignments } = await supabase
     .from("work_assignments")
     .select(`
       id, title, reference_id, status, assigned_at, target_deadline, established_deadline,
-      assigner:staff_profiles!assigner_id(email),
-      assignee:staff_profiles!assignee_id(email)
+      assigner_id,
+      assignee_id
     `)
     .in("status", ["pending", "active"])
     .order("established_deadline", { ascending: true, nullsFirst: false })
     .order("assigned_at", { ascending: false });
 
-  const items = (assignments ?? []) as unknown as ActiveAssignment[];
+  const allUserIds = [...new Set((assignments || []).flatMap((a: any) => [a.assigner_id, a.assignee_id]))].filter(Boolean);
+  let userMap = new Map();
+  if (allUserIds.length > 0) {
+    const { data: members } = await supabase
+      .from("organization_members")
+      .select("user_id, display_name, username")
+      .eq("organization_id", staff.activeOrgId)
+      .in("user_id", allUserIds);
+    userMap = new Map((members || []).map(m => [m.user_id, m]));
+  }
+
+  const items = (assignments ?? []).map((a: any) => ({
+    ...a,
+    assigner: { email: userMap.get(a.assigner_id)?.display_name || userMap.get(a.assigner_id)?.username || "?" },
+    assignee: { email: userMap.get(a.assignee_id)?.display_name || userMap.get(a.assignee_id)?.username || "?" }
+  })) as unknown as ActiveAssignment[];
 
   return (
     <SectionFrame title="Active Work" count={items.length}>
@@ -192,20 +208,36 @@ type CompletedAssignment = {
 };
 
 async function CompletedHistorySection() {
+  const staff = await requireApprovedStaff();
   const supabase = await createClient();
 
   const { data: assignments } = await supabase
     .from("work_assignments")
     .select(`
       id, title, reference_id, completed_at,
-      assigner:staff_profiles!assigner_id(email),
-      assignee:staff_profiles!assignee_id(email)
+      assigner_id,
+      assignee_id
     `)
     .eq("status", "completed")
     .not("completed_at", "is", null)
     .order("completed_at", { ascending: false });
 
-  const items = (assignments ?? []) as unknown as CompletedAssignment[];
+  const allUserIds = [...new Set((assignments || []).flatMap((a: any) => [a.assigner_id, a.assignee_id]))].filter(Boolean);
+  let userMap = new Map();
+  if (allUserIds.length > 0) {
+    const { data: members } = await supabase
+      .from("organization_members")
+      .select("user_id, display_name, username")
+      .eq("organization_id", staff.activeOrgId)
+      .in("user_id", allUserIds);
+    userMap = new Map((members || []).map(m => [m.user_id, m]));
+  }
+
+  const items = (assignments ?? []).map((a: any) => ({
+    ...a,
+    assigner: { email: userMap.get(a.assigner_id)?.display_name || userMap.get(a.assigner_id)?.username || "?" },
+    assignee: { email: userMap.get(a.assignee_id)?.display_name || userMap.get(a.assignee_id)?.username || "?" }
+  })) as unknown as CompletedAssignment[];
 
   // Group by month
   const groups = new Map<string, CompletedAssignment[]>();
