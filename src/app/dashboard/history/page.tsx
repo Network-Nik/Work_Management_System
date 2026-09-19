@@ -10,21 +10,19 @@ async function HistoryFeed() {
   const { data: events } = await supabase
     .from("work_assignment_events")
     .select(`
-      id, event_type, comment, created_at, actor_id,
+      id, event_type, comment, created_at, actor_id, assignment_id,
       assignment:work_assignments!assignment_id(title, reference_id)
     `)
     .order("created_at", { ascending: false })
     .limit(100);
 
-  const actorIds = [...new Set((events || []).map((e: any) => e.actor_id))].filter(Boolean);
+  const allAssignmentIds = [...new Set((events || []).map((e: any) => e.assignment_id))].filter(Boolean);
   let actorsMap = new Map();
-  if (actorIds.length > 0) {
-    const { data: members } = await supabase
-      .from("organization_members")
-      .select("user_id, display_name, username")
-      .eq("organization_id", staff.activeOrgId)
-      .in("user_id", actorIds);
-    actorsMap = new Map((members || []).map(m => [m.user_id, m]));
+  if (allAssignmentIds.length > 0) {
+    const { data: identities } = await supabase.rpc("resolve_assignment_identities", {
+      p_assignment_ids: allAssignmentIds
+    });
+    actorsMap = new Map((identities || []).map((i: any) => [i.user_id, i]));
   }
 
   const items = (events ?? []).map((e: any) => ({

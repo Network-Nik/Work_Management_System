@@ -14,10 +14,6 @@ export async function completeProfile(formData: FormData) {
     return { error: "Display Name and Username are required." };
   }
 
-  if (staff.role === "manager") {
-    return { error: "Managers must contact an administrator to update their profile." };
-  }
-
   const supabase = await createClient();
   
   if (staff.role === "admin" || staff.isOwner) {

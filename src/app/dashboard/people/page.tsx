@@ -1,5 +1,6 @@
 import { requireApprovedStaff } from "@/lib/auth/require-approved-staff";
 import { createClient } from "@/lib/supabase/server";
+import { EditProfileModal } from "./edit-profile-modal";
 
 export default async function PeopleDirectoryPage() {
   const staff = await requireApprovedStaff();
@@ -97,6 +98,11 @@ export default async function PeopleDirectoryPage() {
                       <span className="font-medium">WhatsApp:</span> {contactMap.get(member.user_id)!.whatsapp_number}
                     </p>
                   )}
+                </div>
+              )}
+              {isPrivileged && (
+                <div className="mt-4 pt-4 border-t border-zinc-800/50 flex justify-end">
+                  <EditProfileModal member={member} departments={departments || []} />
                 </div>
               )}
             </div>

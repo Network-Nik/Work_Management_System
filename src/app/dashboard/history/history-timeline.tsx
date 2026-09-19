@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 function formatRelativeTime(isoString: string) {
   const now = Date.now();
@@ -33,6 +34,7 @@ type EventType = "created" | "accepted" | "declined" | "cancelled" | "completed"
 
 export type TimelineEvent = {
   id: string;
+  assignment_id: string;
   event_type: EventType;
   comment: string | null;
   created_at: string;
@@ -150,7 +152,9 @@ export function HistoryTimeline({ events }: { events: TimelineEvent[] }) {
 
                 <div className="bg-zinc-900/40 border border-zinc-800/60 rounded-xl p-3 sm:p-4">
                   <div className="flex items-center gap-2 mb-1">
-                    <p className="text-sm text-zinc-300 font-medium truncate">{title}</p>
+                    <Link href={`/dashboard/assignments/${event.assignment_id}`} className="text-sm text-zinc-300 font-medium truncate hover:underline hover:text-white transition-colors">
+                      {title}
+                    </Link>
                     {event.assignment?.reference_id && (
                       <span className="text-[10px] font-mono text-zinc-500 bg-zinc-800/80 px-1.5 py-0.5 rounded shrink-0">
                         {event.assignment.reference_id}

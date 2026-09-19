@@ -50,9 +50,14 @@ export default async function AdminPage() {
     <div className="max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-2xl font-semibold text-zinc-100 tracking-tight">Staff Management</h1>
-        <Link href="/dashboard/admin/allowlist" className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-medium rounded-lg transition-colors">
-          Manage Allowlist
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href="/dashboard/admin/departments" className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-medium rounded-lg transition-colors">
+            Manage Departments
+          </Link>
+          <Link href="/dashboard/admin/allowlist" className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-medium rounded-lg transition-colors">
+            Manage Allowlist
+          </Link>
+        </div>
       </div>
 
       {staff.isOwner && (

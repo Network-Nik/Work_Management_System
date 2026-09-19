@@ -1,5 +1,7 @@
 import { requireApprovedStaff } from "@/lib/auth/require-approved-staff";
 import { createClient } from "@/lib/supabase/server";
+import Link from "next/link";
+import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 // ---------------------------------------------------------------------------
@@ -116,15 +118,13 @@ async function ActiveWorkSection() {
     .order("established_deadline", { ascending: true, nullsFirst: false })
     .order("assigned_at", { ascending: false });
 
-  const allUserIds = [...new Set((assignments || []).flatMap((a: any) => [a.assigner_id, a.assignee_id]))].filter(Boolean);
+  const allAssignmentIds = [...new Set((assignments || []).map((a: any) => a.id))].filter(Boolean);
   let userMap = new Map();
-  if (allUserIds.length > 0) {
-    const { data: members } = await supabase
-      .from("organization_members")
-      .select("user_id, display_name, username")
-      .eq("organization_id", staff.activeOrgId)
-      .in("user_id", allUserIds);
-    userMap = new Map((members || []).map(m => [m.user_id, m]));
+  if (allAssignmentIds.length > 0) {
+    const { data: identities } = await supabase.rpc("resolve_assignment_identities", {
+      p_assignment_ids: allAssignmentIds
+    });
+    userMap = new Map((identities || []).map((i: any) => [i.user_id, i]));
   }
 
   const items = (assignments ?? []).map((a: any) => ({
@@ -146,9 +146,10 @@ async function ActiveWorkSection() {
             const overdue = a.status === "active" && isOverdue(a.established_deadline);
 
             return (
-              <div
+              <Link
                 key={a.id}
-                className={`p-4 rounded-xl border bg-zinc-900/50 ${overdue ? "border-rose-500/40" : "border-zinc-800"}`}
+                href={`/dashboard/assignments/${a.id}`}
+                className={`block p-4 rounded-xl border bg-zinc-900/50 hover:bg-zinc-800/50 transition-colors ${overdue ? "border-rose-500/40" : "border-zinc-800"}`}
               >
                 <div className="flex items-start justify-between gap-3 mb-2">
                   <div className="min-w-0">
@@ -185,7 +186,7 @@ async function ActiveWorkSection() {
                     Suggested deadline: {formatDate(suggestedDeadline)}
                   </div>
                 )}
-              </div>
+              </Link>
             );
           })}
         </div>
@@ -222,15 +223,13 @@ async function CompletedHistorySection() {
     .not("completed_at", "is", null)
     .order("completed_at", { ascending: false });
 
-  const allUserIds = [...new Set((assignments || []).flatMap((a: any) => [a.assigner_id, a.assignee_id]))].filter(Boolean);
+  const allAssignmentIds = [...new Set((assignments || []).map((a: any) => a.id))].filter(Boolean);
   let userMap = new Map();
-  if (allUserIds.length > 0) {
-    const { data: members } = await supabase
-      .from("organization_members")
-      .select("user_id, display_name, username")
-      .eq("organization_id", staff.activeOrgId)
-      .in("user_id", allUserIds);
-    userMap = new Map((members || []).map(m => [m.user_id, m]));
+  if (allAssignmentIds.length > 0) {
+    const { data: identities } = await supabase.rpc("resolve_assignment_identities", {
+      p_assignment_ids: allAssignmentIds
+    });
+    userMap = new Map((identities || []).map((i: any) => [i.user_id, i]));
   }
 
   const items = (assignments ?? []).map((a: any) => ({
@@ -264,9 +263,10 @@ async function CompletedHistorySection() {
               </h3>
               <div className="flex flex-col gap-1.5">
                 {monthItems.map((a) => (
-                  <div
+                  <Link
                     key={a.id}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-zinc-800/40 bg-zinc-900/30 hover:bg-zinc-800/30 transition-colors"
+                    href={`/dashboard/assignments/${a.id}`}
+                    className="block flex items-center gap-3 px-3 py-2.5 rounded-lg border border-zinc-800/40 bg-zinc-900/30 hover:bg-zinc-800/50 transition-colors"
                   >
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/60 shrink-0" />
                     <div className="flex-1 min-w-0">
@@ -285,7 +285,7 @@ async function CompletedHistorySection() {
                     <span className="text-[10px] text-zinc-600 shrink-0">
                       {formatShortDate(a.completed_at)}
                     </span>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>

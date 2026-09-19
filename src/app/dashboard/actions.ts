@@ -360,3 +360,27 @@ export async function markAllNotificationsAsRead() {
     return { error: "An unexpected error occurred" };
   }
 }
+
+export async function postAssignmentComment(assignmentId: string, content: string) {
+  try {
+    const staff = await requireApprovedStaff();
+    if (!staff) return { error: "Unauthorized" };
+
+    const supabase = await createClient();
+    const { error } = await supabase.rpc("add_assignment_comment", {
+      p_assignment_id: assignmentId,
+      p_content: content,
+    });
+
+    if (error) {
+      console.error("Failed to post comment:", error);
+      return { error: error.message };
+    }
+
+    revalidatePath("/dashboard/assignments/" + assignmentId);
+    return { success: true };
+  } catch (error) {
+    console.error("Exception in postAssignmentComment:", error);
+    return { error: "An unexpected error occurred" };
+  }
+}
