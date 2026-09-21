@@ -1,6 +1,7 @@
-"use server";
+﻿"use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { requireApprovedStaff } from "@/lib/auth/require-approved-staff";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -34,4 +35,20 @@ export async function createDM(organizationId: string, targetUserId: string) {
 
   revalidatePath("/dashboard/chat");
   redirect(`/dashboard/chat/${convId}`);
+}
+
+export async function markAsRead(conversationId: string) {
+  await requireApprovedStaff();
+  const supabase = await createClient();
+
+  const { error } = await supabase.rpc("mark_conversation_read", {
+    p_conv_id: conversationId,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/dashboard/chat");
+  return { success: true };
 }

@@ -11,7 +11,7 @@ export default async function ActiveChatPage({ params }: { params: Promise<{ id:
 
   const { data: conv, error: convError } = await supabase
     .from("chat_conversations")
-    .select("type, is_active, departments(is_active)")
+    .select("type, is_active, last_message_at, departments(is_active), chat_conversation_reads(last_read_at)")
     .eq("id", id)
     .single();
 
@@ -21,12 +21,16 @@ export default async function ActiveChatPage({ params }: { params: Promise<{ id:
 
   let canSend = conv.is_active;
   if (conv.type === "department" && conv.departments) {
-    // Handle array or object just in case PostgREST maps it either way
     const dept: any = Array.isArray(conv.departments) ? conv.departments[0] : conv.departments;
     if (dept && dept.is_active === false) {
       canSend = false;
     }
   }
+
+  const reads = Array.isArray(conv.chat_conversation_reads) ? conv.chat_conversation_reads[0] : conv.chat_conversation_reads;
+  const lastReadAt = (reads as any)?.last_read_at || null;
+  const lastMessageAt = conv.last_message_at;
+  const isUnread = lastMessageAt !== null && (lastReadAt === null || new Date(lastMessageAt) > new Date(lastReadAt));
 
   const { data: messages } = await supabase
     .from("chat_messages")
@@ -54,6 +58,8 @@ export default async function ActiveChatPage({ params }: { params: Promise<{ id:
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <MessageList
+        conversationId={id}
+        isUnread={isUnread}
         messages={messages || []}
         identityMap={identityMap}
         currentUserId={staff.user_id}

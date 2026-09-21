@@ -13,6 +13,12 @@ type Conversation = {
   last_message_at: string;
   departments?: { name: string } | null;
   chat_conversation_members?: { user_id: string }[];
+  isUnread?: boolean;
+  latestMessage?: {
+    content: string;
+    created_at: string;
+    sender_id: string;
+  } | null;
 };
 
 type Props = {
@@ -23,6 +29,30 @@ type Props = {
   organizationId: string;
 };
 
+function formatTimestamp(isoString: string) {
+  if (!isoString) return "";
+  const date = new Date(isoString);
+  const now = new Date();
+
+  const isToday = date.toDateString() === now.toDateString();
+
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const isYesterday = date.toDateString() === yesterday.toDateString();
+
+  const isSameYear = date.getFullYear() === now.getFullYear();
+
+  if (isToday) {
+    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  } else if (isYesterday) {
+    return "Yesterday";
+  } else if (isSameYear) {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  } else {
+    return date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' });
+  }
+}
+
 export function ConversationList({ conversations, identityMap, currentUserId, directory, organizationId }: Props) {
   const pathname = usePathname();
 
@@ -31,7 +61,7 @@ export function ConversationList({ conversations, identityMap, currentUserId, di
 
   return (
     <div className={`w-full lg:w-72 flex flex-col border-r border-zinc-800 bg-zinc-950/80 ${pathname === "/dashboard/chat" ? "flex" : "hidden lg:flex"}`}>
-      <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
+      <div className="p-4 border-b border-zinc-800 flex items-center justify-between shrink-0">
         <h2 className="font-medium text-zinc-100">Conversations</h2>
         <NewDmModal directory={directory} organizationId={organizationId} currentUserId={currentUserId} />
       </div>
@@ -41,17 +71,41 @@ export function ConversationList({ conversations, identityMap, currentUserId, di
           <div>
             <h3 className="px-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Departments</h3>
             <div className="space-y-1">
-              {depts.map(dept => (
-                <Link
-                  key={dept.id}
-                  href={`/dashboard/chat/${dept.id}`}
-                  className={`block px-3 py-2 rounded-lg text-sm transition-colors ${pathname === `/dashboard/chat/${dept.id}` ? "bg-zinc-800 text-zinc-100" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"}`}
-                >
-                  <span className="opacity-50 mr-1.5">#</span>
-                  {dept.departments?.name}
-                  {!dept.is_active && <span className="ml-2 text-[10px] uppercase border border-zinc-700 px-1 py-0.5 rounded text-zinc-500">Archived</span>}
-                </Link>
-              ))}
+              {depts.map(dept => {
+                const isActive = pathname === `/dashboard/chat/${dept.id}`;
+                const nameClasses = dept.isUnread ? "font-semibold text-zinc-100" : (isActive ? "text-zinc-100" : "text-zinc-400");
+
+                return (
+                  <Link
+                    key={dept.id}
+                    href={`/dashboard/chat/${dept.id}`}
+                    className={`block px-3 py-2 rounded-lg text-sm transition-colors ${isActive ? "bg-zinc-800" : "hover:bg-zinc-800/50"}`}
+                  >
+                    <div className="flex items-center justify-between mb-0.5">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        {dept.isUnread && <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />}
+                        <span className={`truncate ${nameClasses}`}>
+                          <span className="opacity-50 mr-1">#</span>
+                          {dept.departments?.name}
+                        </span>
+                        {!dept.is_active && <span className="ml-1 text-[10px] uppercase border border-zinc-700 px-1 py-0.5 rounded text-zinc-500 shrink-0">Archived</span>}
+                      </div>
+                      {dept.latestMessage && (
+                        <span className="text-[10px] text-zinc-500 shrink-0 ml-2">
+                          {formatTimestamp(dept.latestMessage.created_at)}
+                        </span>
+                      )}
+                    </div>
+                    {dept.latestMessage ? (
+                      <div className="text-xs text-zinc-500 truncate pl-3">
+                        {identityMap[dept.latestMessage.sender_id]?.display_name?.split(' ')[0]}: {dept.latestMessage.content}
+                      </div>
+                    ) : (
+                      <div className="text-xs text-zinc-600 italic pl-3">No messages yet</div>
+                    )}
+                  </Link>
+                );
+              })}
             </div>
           </div>
         )}
@@ -64,17 +118,36 @@ export function ConversationList({ conversations, identityMap, currentUserId, di
                 const otherMember = dm.chat_conversation_members?.find(m => m.user_id !== currentUserId);
                 const identity = otherMember ? identityMap[otherMember.user_id] : null;
                 const name = identity ? identity.display_name || identity.username : "Unknown User";
+                const isActive = pathname === `/dashboard/chat/${dm.id}`;
+                const nameClasses = dm.isUnread ? "font-semibold text-zinc-100" : (isActive ? "text-zinc-100" : "text-zinc-400");
 
                 return (
                   <Link
                     key={dm.id}
                     href={`/dashboard/chat/${dm.id}`}
-                    className={`block px-3 py-2 rounded-lg text-sm transition-colors flex items-center ${pathname === `/dashboard/chat/${dm.id}` ? "bg-zinc-800 text-zinc-100" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"}`}
+                    className={`block px-3 py-2 rounded-lg text-sm transition-colors ${isActive ? "bg-zinc-800" : "hover:bg-zinc-800/50"}`}
                   >
-                    <div className="w-5 h-5 rounded bg-zinc-800 mr-2 flex items-center justify-center text-[10px] text-zinc-500 font-medium border border-zinc-700">
-                      {name.substring(0, 1).toUpperCase()}
+                    <div className="flex items-center justify-between mb-0.5">
+                      <div className="flex items-center min-w-0">
+                        {dm.isUnread && <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0 mr-1.5" />}
+                        <div className="w-5 h-5 rounded bg-zinc-800 mr-2 flex items-center justify-center text-[10px] text-zinc-500 font-medium border border-zinc-700 shrink-0">
+                          {name.substring(0, 1).toUpperCase()}
+                        </div>
+                        <span className={`truncate ${nameClasses}`}>{name}</span>
+                      </div>
+                      {dm.latestMessage && (
+                        <span className="text-[10px] text-zinc-500 shrink-0 ml-2">
+                          {formatTimestamp(dm.latestMessage.created_at)}
+                        </span>
+                      )}
                     </div>
-                    <span className="truncate">{name}</span>
+                    {dm.latestMessage ? (
+                      <div className="text-xs text-zinc-500 truncate pl-[34px]">
+                        {dm.latestMessage.sender_id === currentUserId ? 'You: ' : ''}{dm.latestMessage.content}
+                      </div>
+                    ) : (
+                      <div className="text-xs text-zinc-600 italic pl-[34px]">No messages yet</div>
+                    )}
                   </Link>
                 );
               })}

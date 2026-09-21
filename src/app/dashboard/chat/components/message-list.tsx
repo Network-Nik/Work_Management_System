@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useRef } from "react";
+import { markAsRead } from "../actions";
 
 type Message = {
   id: string;
@@ -10,18 +11,64 @@ type Message = {
 };
 
 type Props = {
+  conversationId: string;
+  isUnread: boolean;
   messages: Message[];
   identityMap: Record<string, { display_name: string; username: string }>;
   currentUserId: string;
 };
 
-export function MessageList({ messages, identityMap, currentUserId }: Props) {
+function formatTimestamp(isoString: string) {
+  if (!isoString) return "";
+  const date = new Date(isoString);
+  const now = new Date();
+
+  const isToday = date.toDateString() === now.toDateString();
+
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const isYesterday = date.toDateString() === yesterday.toDateString();
+
+  const isSameYear = date.getFullYear() === now.getFullYear();
+
+  if (isToday) {
+    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  } else if (isYesterday) {
+    return "Yesterday";
+  } else if (isSameYear) {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  } else {
+    return date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' });
+  }
+}
+
+export function MessageList({ conversationId, isUnread, messages, identityMap, currentUserId }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const orderedMessages = [...messages].reverse();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    if (!isUnread) return;
+
+    let ignore = false;
+
+    const doMark = async () => {
+      // Small delay allows React Strict Mode's unmount to run first
+      await new Promise((r) => setTimeout(r, 50));
+      if (!ignore) {
+        await markAsRead(conversationId).catch(() => {});
+      }
+    };
+
+    doMark();
+
+    return () => {
+      ignore = true;
+    };
+  }, [conversationId, isUnread]);
 
   return (
     <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-zinc-950/50">
@@ -41,7 +88,7 @@ export function MessageList({ messages, identityMap, currentUserId }: Props) {
                 <div className="flex items-baseline space-x-2 mb-1">
                   <span className="text-xs font-medium text-zinc-300">{isMe ? "You" : name}</span>
                   <span className="text-[10px] text-zinc-500">
-                    {new Date(msg.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+                    {formatTimestamp(msg.created_at)}
                   </span>
                 </div>
                 <div
