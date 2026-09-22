@@ -59,17 +59,27 @@ export function ConversationList({ conversations, identityMap, currentUserId, di
   const pathname = usePathname();
   const router = useRouter();
 
-  const [localConversations, setLocalConversations] = useState<Conversation[]>(conversations);
+  type RealtimeConversationUpdate = {
+    latestMessage: {
+      content: string;
+      created_at: string;
+      sender_id: string;
+    } | null;
+    lastMessageAt: string;
+    isUnread: boolean;
+  };
+
+  const [realtimeUpdates, setRealtimeUpdates] = useState<Record<string, RealtimeConversationUpdate>>({});
   const pathnameRef = useRef(pathname);
+  const conversationsRef = useRef(conversations);
   const hasConnected = useRef(false);
 
   useEffect(() => {
     pathnameRef.current = pathname;
   }, [pathname]);
 
-  // Sync with server props whenever they update
   useEffect(() => {
-    setLocalConversations(conversations);
+    conversationsRef.current = conversations;
   }, [conversations]);
 
   useEffect(() => {
@@ -88,38 +98,25 @@ export function ConversationList({ conversations, identityMap, currentUserId, di
           const newMsg = payload.new;
           const currentPath = pathnameRef.current;
 
-          setLocalConversations((prev) => {
-            const idx = prev.findIndex((c) => c.id === newMsg.conversation_id);
-            if (idx === -1) {
-              // A completely new conversation arrived (e.g. new DM)
-              router.refresh();
-              return prev;
-            }
+          // If this message belongs to a conversation we don't even have loaded
+          // (e.g. a brand new DM), we must fetch the new conversation data from the server.
+          if (!conversationsRef.current.some((c) => c.id === newMsg.conversation_id)) {
+            router.refresh();
+            return;
+          }
 
-            const updated = [...prev];
-            const conv = { ...updated[idx] };
-
-            conv.latestMessage = {
-              content: newMsg.content,
-              created_at: newMsg.created_at,
-              sender_id: newMsg.sender_id,
-            };
-            conv.last_message_at = newMsg.created_at;
-
-            // Only mark unread if we are not actively viewing this conversation
-            if (currentPath !== `/dashboard/chat/${conv.id}`) {
-              conv.isUnread = true;
-            }
-
-            updated[idx] = conv;
-
-            // Re-sort so the updated conversation bubbles to the top
-            return updated.sort(
-              (a, b) =>
-                new Date(b.last_message_at || 0).getTime() -
-                new Date(a.last_message_at || 0).getTime()
-            );
-          });
+          setRealtimeUpdates((prev) => ({
+            ...prev,
+            [newMsg.conversation_id]: {
+              latestMessage: {
+                content: newMsg.content,
+                created_at: newMsg.created_at,
+                sender_id: newMsg.sender_id,
+              },
+              lastMessageAt: newMsg.created_at,
+              isUnread: currentPath !== `/dashboard/chat/${newMsg.conversation_id}`,
+            },
+          }));
         }
       )
       .subscribe((status, err) => {
@@ -147,8 +144,30 @@ export function ConversationList({ conversations, identityMap, currentUserId, di
     };
   }, [router]);
 
-  const depts = localConversations.filter(c => c.type === "department");
-  const dms = localConversations.filter(c => c.type === "direct");
+  // Derived state: Apply realtime overrides only if they are strictly newer than the server's data.
+  const displayConversations = conversations
+    .map((conv) => {
+      const update = realtimeUpdates[conv.id];
+      const serverTime = new Date(conv.last_message_at || 0).getTime();
+      const updateTime = update ? new Date(update.lastMessageAt).getTime() : 0;
+
+      if (update && updateTime > serverTime) {
+        return {
+          ...conv,
+          latestMessage: update.latestMessage,
+          last_message_at: update.lastMessageAt,
+          isUnread: conv.isUnread || update.isUnread,
+        };
+      }
+      return conv;
+    })
+    .sort(
+      (a, b) =>
+        new Date(b.last_message_at || 0).getTime() - new Date(a.last_message_at || 0).getTime()
+    );
+
+  const depts = displayConversations.filter((c) => c.type === "department");
+  const dms = displayConversations.filter((c) => c.type === "direct");
 
   return (
     <div className={`w-full lg:w-72 flex flex-col border-r border-zinc-800 bg-zinc-950/80 ${pathname === "/dashboard/chat" ? "flex" : "hidden lg:flex"}`}>

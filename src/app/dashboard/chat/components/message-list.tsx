@@ -51,12 +51,6 @@ export function MessageList({ conversationId, isUnread, messages, identityMap, c
   const [realtimeMessages, setRealtimeMessages] = useState<Message[]>([]);
 
   useEffect(() => {
-    // Clear realtime messages that have now been provided by the server
-    const serverIds = new Set(messages.map((m) => m.id));
-    setRealtimeMessages((prev) => prev.filter((m) => !serverIds.has(m.id)));
-  }, [messages]);
-
-  useEffect(() => {
     let isUnmounting = false;
     const supabase = createClient();
     const channel = supabase
@@ -102,9 +96,12 @@ export function MessageList({ conversationId, isUnread, messages, identityMap, c
     };
   }, [conversationId, router]);
 
-  // messages from server are ordered by created_at desc (newest first).
-  // realtimeMessages are also newest first.
-  const allMessages = [...realtimeMessages, ...messages];
+  // Derived state: Filter realtime messages whose IDs are already in the server messages
+  const serverIds = new Set(messages.map((m) => m.id));
+  const visibleRealtimeMessages = realtimeMessages.filter((m) => !serverIds.has(m.id));
+
+  // Both arrays are ordered newest-first natively
+  const allMessages = [...visibleRealtimeMessages, ...messages];
   const orderedMessages = [...allMessages].reverse(); // reverse for chronological display
 
   useEffect(() => {
