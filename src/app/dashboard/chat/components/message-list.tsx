@@ -1,7 +1,9 @@
-﻿"use client";
+"use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { markAsRead } from "../actions";
+import { createClient } from "@/lib/supabase/client";
 
 type Message = {
   id: string;
@@ -43,12 +45,71 @@ function formatTimestamp(isoString: string) {
 }
 
 export function MessageList({ conversationId, isUnread, messages, identityMap, currentUserId }: Props) {
+  const router = useRouter();
   const bottomRef = useRef<HTMLDivElement>(null);
-  const orderedMessages = [...messages].reverse();
+  const hasConnected = useRef(false);
+  const [realtimeMessages, setRealtimeMessages] = useState<Message[]>([]);
+
+  useEffect(() => {
+    // Clear realtime messages that have now been provided by the server
+    const serverIds = new Set(messages.map((m) => m.id));
+    setRealtimeMessages((prev) => prev.filter((m) => !serverIds.has(m.id)));
+  }, [messages]);
+
+  useEffect(() => {
+    let isUnmounting = false;
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`chat-active-${conversationId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "chat_messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          const newMsg = payload.new as Message;
+          setRealtimeMessages((prev) => {
+            if (prev.some((m) => m.id === newMsg.id)) return prev;
+            return [newMsg, ...prev]; // newer messages first in realtime buffer
+          });
+        }
+      )
+      .subscribe((status, err) => {
+        if (status === "SUBSCRIBED") {
+          if (hasConnected.current) {
+            router.refresh();
+          } else {
+            hasConnected.current = true;
+          }
+        } else if (status === "CHANNEL_ERROR") {
+          console.error("[Realtime] Active channel error:", err);
+        } else if (status === "TIMED_OUT") {
+          console.warn("[Realtime] Active channel timed out:", err);
+        } else if (status === "CLOSED") {
+          if (!isUnmounting) {
+            console.warn("[Realtime] Active channel closed unexpectedly. Recovering...");
+            channel.subscribe();
+          }
+        }
+      });
+
+    return () => {
+      isUnmounting = true;
+      supabase.removeChannel(channel);
+    };
+  }, [conversationId, router]);
+
+  // messages from server are ordered by created_at desc (newest first).
+  // realtimeMessages are also newest first.
+  const allMessages = [...realtimeMessages, ...messages];
+  const orderedMessages = [...allMessages].reverse(); // reverse for chronological display
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [allMessages]); // scroll down on any new message
 
   useEffect(() => {
     if (!isUnread) return;

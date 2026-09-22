@@ -1,8 +1,10 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { NewDmModal } from "./new-dm-modal";
+import { createClient } from "@/lib/supabase/client";
 
 type Conversation = {
   id: string;
@@ -55,9 +57,98 @@ function formatTimestamp(isoString: string) {
 
 export function ConversationList({ conversations, identityMap, currentUserId, directory, organizationId }: Props) {
   const pathname = usePathname();
+  const router = useRouter();
 
-  const depts = conversations.filter(c => c.type === "department");
-  const dms = conversations.filter(c => c.type === "direct");
+  const [localConversations, setLocalConversations] = useState<Conversation[]>(conversations);
+  const pathnameRef = useRef(pathname);
+  const hasConnected = useRef(false);
+
+  useEffect(() => {
+    pathnameRef.current = pathname;
+  }, [pathname]);
+
+  // Sync with server props whenever they update
+  useEffect(() => {
+    setLocalConversations(conversations);
+  }, [conversations]);
+
+  useEffect(() => {
+    let isUnmounting = false;
+    const supabase = createClient();
+    const channel = supabase
+      .channel("chat-global-sidebar")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "chat_messages",
+        },
+        (payload) => {
+          const newMsg = payload.new;
+          const currentPath = pathnameRef.current;
+
+          setLocalConversations((prev) => {
+            const idx = prev.findIndex((c) => c.id === newMsg.conversation_id);
+            if (idx === -1) {
+              // A completely new conversation arrived (e.g. new DM)
+              router.refresh();
+              return prev;
+            }
+
+            const updated = [...prev];
+            const conv = { ...updated[idx] };
+
+            conv.latestMessage = {
+              content: newMsg.content,
+              created_at: newMsg.created_at,
+              sender_id: newMsg.sender_id,
+            };
+            conv.last_message_at = newMsg.created_at;
+
+            // Only mark unread if we are not actively viewing this conversation
+            if (currentPath !== `/dashboard/chat/${conv.id}`) {
+              conv.isUnread = true;
+            }
+
+            updated[idx] = conv;
+
+            // Re-sort so the updated conversation bubbles to the top
+            return updated.sort(
+              (a, b) =>
+                new Date(b.last_message_at || 0).getTime() -
+                new Date(a.last_message_at || 0).getTime()
+            );
+          });
+        }
+      )
+      .subscribe((status, err) => {
+        if (status === "SUBSCRIBED") {
+          if (hasConnected.current) {
+            router.refresh();
+          } else {
+            hasConnected.current = true;
+          }
+        } else if (status === "CHANNEL_ERROR") {
+          console.error("[Realtime] Global sidebar channel error:", err);
+        } else if (status === "TIMED_OUT") {
+          console.warn("[Realtime] Global sidebar channel timed out:", err);
+        } else if (status === "CLOSED") {
+          if (!isUnmounting) {
+            console.warn("[Realtime] Global sidebar channel closed unexpectedly. Recovering...");
+            channel.subscribe();
+          }
+        }
+      });
+
+    return () => {
+      isUnmounting = true;
+      supabase.removeChannel(channel);
+    };
+  }, [router]);
+
+  const depts = localConversations.filter(c => c.type === "department");
+  const dms = localConversations.filter(c => c.type === "direct");
 
   return (
     <div className={`w-full lg:w-72 flex flex-col border-r border-zinc-800 bg-zinc-950/80 ${pathname === "/dashboard/chat" ? "flex" : "hidden lg:flex"}`}>
@@ -98,7 +189,7 @@ export function ConversationList({ conversations, identityMap, currentUserId, di
                     </div>
                     {dept.latestMessage ? (
                       <div className="text-xs text-zinc-500 truncate pl-3">
-                        {identityMap[dept.latestMessage.sender_id]?.display_name?.split(' ')[0]}: {dept.latestMessage.content}
+                        {identityMap[dept.latestMessage.sender_id]?.display_name?.split(' ')[0] || "Unknown User"}: {dept.latestMessage.content}
                       </div>
                     ) : (
                       <div className="text-xs text-zinc-600 italic pl-3">No messages yet</div>
