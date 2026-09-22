@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { RegistrationActions } from "@/app/dashboard/admin/registration-actions";
 import { AssignWorkModal } from "./assign-work-modal";
 import { AcceptDeclineButtons, CompleteButton } from "./assignment-actions";
+import { CompanyProgressChart } from "./components/company-progress-chart";
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -420,6 +421,10 @@ export default async function DashboardPage() {
       <Suspense fallback={<div className="h-16 w-64 bg-zinc-800 animate-pulse rounded-lg mb-8"></div>}>
         <DashboardGreeting />
       </Suspense>
+
+      <div className="mb-6">
+        <CompanyProgressChart />
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Suspense fallback={<div className="h-64 bg-zinc-900 animate-pulse rounded-2xl border border-zinc-800"></div>}>
