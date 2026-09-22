@@ -384,3 +384,25 @@ export async function postAssignmentComment(assignmentId: string, content: strin
     return { error: "An unexpected error occurred" };
   }
 }
+
+export async function getCompanyProgressAction(period: "7d" | "30d" | "1y") {
+  try {
+    const staff = await requireApprovedStaff();
+    const supabase = await createClient();
+
+    const { data, error } = await supabase.rpc("get_company_progress", {
+      p_org_id: staff.activeOrgId,
+      p_period: period,
+    });
+
+    if (error) {
+      console.error("Failed to get company progress:", error);
+      return { error: "Failed to get company progress data" };
+    }
+
+    return { data };
+  } catch (error) {
+    console.error("Exception in getCompanyProgressAction:", error);
+    return { error: "An unexpected error occurred" };
+  }
+}

@@ -16,6 +16,7 @@ export type ApprovedStaff = {
   username: string | null;
   job_title: string | null;
   department_id: string | null;
+  availability: string;
 };
 
 /**
@@ -72,7 +73,7 @@ export async function requireApprovedStaff(): Promise<ApprovedStaff> {
   // Fetch the organization-scoped profile fields
   const { data: orgProfile } = await supabase
     .from("organization_members")
-    .select("display_name, username, job_title, department_id")
+    .select("display_name, username, job_title, department_id, availability")
     .eq("organization_id", activeOrgId)
     .eq("user_id", user.id)
     .single();
@@ -94,6 +95,7 @@ export async function requireApprovedStaff(): Promise<ApprovedStaff> {
     display_name: orgProfile?.display_name ?? null,
     username: orgProfile?.username ?? null,
     job_title: orgProfile?.job_title ?? null,
-    department_id: orgProfile?.department_id ?? null
+    department_id: orgProfile?.department_id ?? null,
+    availability: orgProfile?.availability ?? 'available',
   } as ApprovedStaff;
 }
