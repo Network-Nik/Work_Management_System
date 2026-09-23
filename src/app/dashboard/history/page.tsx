@@ -11,8 +11,9 @@ async function HistoryFeed() {
     .from("work_assignment_events")
     .select(`
       id, event_type, comment, created_at, actor_id, assignment_id,
-      assignment:work_assignments!assignment_id(title, reference_id)
+      assignment:work_assignments!inner(title, reference_id, organization_id)
     `)
+    .eq("work_assignments.organization_id", staff.activeOrgId)
     .order("created_at", { ascending: false })
     .limit(100);
 

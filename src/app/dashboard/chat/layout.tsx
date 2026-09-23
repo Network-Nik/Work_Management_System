@@ -1,4 +1,4 @@
-﻿import { requireApprovedStaff } from "@/lib/auth/require-approved-staff";
+import { requireApprovedStaff } from "@/lib/auth/require-approved-staff";
 import { createClient } from "@/lib/supabase/server";
 import { ConversationList } from "./components/conversation-list";
 
@@ -20,6 +20,7 @@ export default async function ChatLayout({ children }: { children: React.ReactNo
       chat_conversation_reads ( last_read_at ),
       chat_messages ( content, created_at, sender_id )
     `)
+    .eq("organization_id", staff.activeOrgId)
     .order("last_message_at", { ascending: false })
     .order("created_at", { foreignTable: "chat_messages", ascending: false })
     .limit(1, { foreignTable: "chat_messages" });

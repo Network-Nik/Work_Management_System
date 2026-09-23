@@ -115,6 +115,7 @@ async function ActiveWorkSection() {
       assignee_id
     `)
     .in("status", ["pending", "active"])
+    .eq("organization_id", staff.activeOrgId)
     .order("established_deadline", { ascending: true, nullsFirst: false })
     .order("assigned_at", { ascending: false });
 
@@ -220,6 +221,7 @@ async function CompletedHistorySection() {
       assignee_id
     `)
     .eq("status", "completed")
+    .eq("organization_id", staff.activeOrgId)
     .not("completed_at", "is", null)
     .order("completed_at", { ascending: false });
 

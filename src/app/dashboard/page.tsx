@@ -121,6 +121,7 @@ async function ActionRequiredCard() {
       id, title, reference_id, description, assigned_at, target_deadline,
       assigner_id
     `)
+    .eq("organization_id", staff.activeOrgId)
     .eq("assignee_id", staff.user_id)
     .eq("status", "pending")
     .order("assigned_at", { ascending: false });
@@ -197,6 +198,7 @@ async function ActiveWorkCard() {
       id, title, reference_id, description, established_deadline, status,
       assigner_id
     `)
+    .eq("organization_id", staff.activeOrgId)
     .eq("assignee_id", staff.user_id)
     .eq("status", "active")
     .order("established_deadline", { ascending: true, nullsFirst: false });
@@ -309,8 +311,9 @@ async function RecentActivityCard() {
     .from("work_assignment_events")
     .select(`
       id, event_type, created_at, comment, actor_id,
-      assignment:work_assignments!assignment_id(title)
+      assignment:work_assignments!inner(title, organization_id)
     `)
+    .eq("work_assignments.organization_id", staff.activeOrgId)
     .order("created_at", { ascending: false })
     .limit(10);
 

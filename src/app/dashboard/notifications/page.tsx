@@ -20,8 +20,9 @@ async function NotificationInbox() {
     .from("in_app_notifications")
     .select(`
       id, type, is_read, created_at, actor_id,
-      assignment:work_assignments!assignment_id(title)
+      assignment:work_assignments!inner(title, organization_id)
     `)
+    .eq("work_assignments.organization_id", staff.activeOrgId)
     .order("created_at", { ascending: false })
     .limit(50);
 
