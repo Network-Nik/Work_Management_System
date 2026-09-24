@@ -79,9 +79,9 @@ async function DashboardGreeting() {
           Here&apos;s what&apos;s happening in your workspace today.
         </p>
       </div>
-      {(staff.role === "admin" || staff.role === "manager") && (
-        <AssignWorkModal staffList={staffList} />
-      )}
+        {(staff.role === "admin" || staff.role === "manager") && (
+          <AssignWorkModal staffList={staffList} expectedOrgId={staff.activeOrgId} />
+        )}
     </div>
   );
 }
@@ -398,13 +398,13 @@ async function PendingRegistrationsCard() {
         />
       ) : (
         <div className="flex flex-col gap-4">
-          {pendingStaff.slice(0, 5).map((staff) => (
-            <div key={staff.user_id} className="flex items-center justify-between p-3 rounded-xl border border-zinc-800 bg-zinc-900/50">
+          {pendingStaff.slice(0, 5).map((user) => (
+            <div key={user.user_id} className="flex items-center justify-between p-3 rounded-xl border border-zinc-800 bg-zinc-900/50">
               <div className="flex flex-col">
-                <span className="text-sm font-medium text-zinc-200">{staff.email}</span>
-                <span className="text-xs text-zinc-500 font-mono mt-0.5">{staff.whatsapp_number}</span>
+                <span className="text-sm font-medium text-zinc-200">{user.email}</span>
+                <span className="text-xs text-zinc-500 font-mono mt-0.5">{user.whatsapp_number}</span>
               </div>
-              <RegistrationActions userId={staff.user_id} />
+              <RegistrationActions userId={user.user_id} expectedOrgId={staff.activeOrgId} />
             </div>
           ))}
         </div>

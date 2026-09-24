@@ -5,9 +5,12 @@ import { requireApprovedStaff } from "@/lib/auth/require-approved-staff";
 import { revalidatePath } from "next/cache";
 import { WorkPulseStatus } from "@/types/work-pulse";
 
-export async function createWorkPulse(title: string, description?: string, estimatedEndAt?: string) {
+export async function createWorkPulse(expectedOrgId: string, title: string, description?: string, estimatedEndAt?: string) {
   try {
     const staff = await requireApprovedStaff();
+    if (staff.activeOrgId !== expectedOrgId) {
+      return { error: "WORKSPACE_CONTEXT_CONFLICT" };
+    }
     
     if (!title || title.trim().length === 0) {
       return { error: "Title is required" };
@@ -69,9 +72,12 @@ export async function updateWorkPulse(id: string, title: string, description: st
   }
 }
 
-export async function updateMyAvailability(availability: string) {
+export async function updateMyAvailability(expectedOrgId: string, availability: string) {
   try {
     const staff = await requireApprovedStaff();
+    if (staff.activeOrgId !== expectedOrgId) {
+      return { error: "WORKSPACE_CONTEXT_CONFLICT" };
+    }
     
     const validStatuses = ["available", "busy", "focused", "away"];
     if (!validStatuses.includes(availability)) {

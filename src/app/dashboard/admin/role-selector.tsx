@@ -3,7 +3,7 @@
 import { useTransition, useState } from "react";
 import { updateStaffRole } from "./actions";
 
-export function RoleSelector({ userId, currentRole }: { userId: string, currentRole: "admin" | "manager" | "employee" }) {
+export function RoleSelector({ userId, currentRole, expectedOrgId }: { userId: string, currentRole: "admin" | "manager" | "employee", expectedOrgId: string }) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -19,7 +19,7 @@ export function RoleSelector({ userId, currentRole }: { userId: string, currentR
 
     setError(null);
     startTransition(async () => {
-      const result = await updateStaffRole(userId, newRole);
+      const result = await updateStaffRole(expectedOrgId, userId, newRole);
       if (result?.error) {
         setError(result.error);
         // We can't easily revert the select element without a fully controlled state,

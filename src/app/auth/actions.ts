@@ -1,6 +1,6 @@
 "use server";
 
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
@@ -53,7 +53,7 @@ export async function signIn(
     return { error: "Invalid email or password. Please try again." };
   }
 
-  redirect("/");
+  redirect("/dashboard");
 }
 
 export async function signUp(
@@ -93,5 +93,9 @@ export async function signUp(
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
+
+  const cookieStore = await cookies();
+  cookieStore.delete("agy_workspace_id");
+
   redirect("/");
 }

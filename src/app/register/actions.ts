@@ -56,16 +56,16 @@ export async function registerStaffProfile(
     };
   }
 
-  // 3. Check if a profile already exists for this user
-  const { data: existingProfile } = await supabase
-    .from("staff_profiles")
+  // 3. Check for existing organization memberships
+  const { data: memberships } = await supabase
+    .from("organization_members")
     .select("access_status")
-    .eq("user_id", user.id)
-    .maybeSingle();
+    .eq("user_id", user.id);
 
-  if (existingProfile) {
-    if (existingProfile.access_status === "approved") {
-      redirect("/dashboard");
+  if (memberships && memberships.length > 0) {
+    const hasApproved = memberships.some(m => m.access_status === "approved");
+    if (hasApproved) {
+      redirect("/workspace-selection");
     }
     // For pending or rejected, send to the pending/status page
     redirect("/pending");

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { createWorkPulse, updateWorkPulse } from "./actions";
 import { WorkPulseEntry, WorkPulseStatus } from "@/types/work-pulse";
 
-export function CreatePulseModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+export function CreatePulseModal({ isOpen, onClose, expectedOrgId }: { isOpen: boolean; onClose: () => void; expectedOrgId: string }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -20,7 +20,7 @@ export function CreatePulseModal({ isOpen, onClose }: { isOpen: boolean; onClose
     const description = formData.get("description") as string;
     const estimatedEndAt = formData.get("estimatedEndAt") as string;
 
-    const res = await createWorkPulse(title, description, estimatedEndAt);
+    const res = await createWorkPulse(expectedOrgId, title, description, estimatedEndAt);
 
     setLoading(false);
     if (res.error) {

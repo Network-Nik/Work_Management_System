@@ -9,6 +9,7 @@ type Props = {
   initialDesc?: string;
   initialActive?: boolean;
   isEdit?: boolean;
+  expectedOrgId: string;
 };
 
 export function DepartmentForm({ existingId, initialName = "", initialDesc = "", initialActive = true, isEdit = false }: Props) {

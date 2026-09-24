@@ -4,8 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { requireApprovedStaff } from "@/lib/auth/require-approved-staff";
 import { revalidatePath } from "next/cache";
 
-export async function approveStaff(userId: string) {
+export async function approveStaff(expectedOrgId: string, userId: string) {
   const admin = await requireApprovedStaff();
+  if (admin.activeOrgId !== expectedOrgId) throw new Error("WORKSPACE_CONTEXT_CONFLICT");
   if (admin.role !== 'admin') {
     throw new Error("Unauthorized");
   }
@@ -25,8 +26,9 @@ export async function approveStaff(userId: string) {
   return { success: true };
 }
 
-export async function rejectStaff(userId: string) {
+export async function rejectStaff(expectedOrgId: string, userId: string) {
   const admin = await requireApprovedStaff();
+  if (admin.activeOrgId !== expectedOrgId) throw new Error("WORKSPACE_CONTEXT_CONFLICT");
   if (admin.role !== 'admin') {
     throw new Error("Unauthorized");
   }
@@ -46,8 +48,9 @@ export async function rejectStaff(userId: string) {
   return { success: true };
 }
 
-export async function addAllowlistEmail(email: string) {
+export async function addAllowlistEmail(expectedOrgId: string, email: string) {
   const admin = await requireApprovedStaff();
+  if (admin.activeOrgId !== expectedOrgId) throw new Error("WORKSPACE_CONTEXT_CONFLICT");
   if (admin.role !== 'admin') {
     throw new Error("Unauthorized");
   }
@@ -78,8 +81,9 @@ export async function addAllowlistEmail(email: string) {
   return { success: true };
 }
 
-export async function removeAllowlistEmail(email: string) {
+export async function removeAllowlistEmail(expectedOrgId: string, email: string) {
   const admin = await requireApprovedStaff();
+  if (admin.activeOrgId !== expectedOrgId) throw new Error("WORKSPACE_CONTEXT_CONFLICT");
   if (admin.role !== 'admin') {
     throw new Error("Unauthorized");
   }
@@ -103,8 +107,9 @@ export async function removeAllowlistEmail(email: string) {
   return { success: true };
 }
 
-export async function updateStaffRole(userId: string, role: string) {
+export async function updateStaffRole(expectedOrgId: string, userId: string, role: string) {
   const admin = await requireApprovedStaff();
+  if (admin.activeOrgId !== expectedOrgId) throw new Error("WORKSPACE_CONTEXT_CONFLICT");
   if (admin.role !== 'admin') {
     throw new Error("Unauthorized");
   }
@@ -136,8 +141,9 @@ export async function updateStaffRole(userId: string, role: string) {
   return { success: true };
 }
 
-export async function addOwner(userId: string) {
+export async function addOwner(expectedOrgId: string, userId: string) {
   const admin = await requireApprovedStaff();
+  if (admin.activeOrgId !== expectedOrgId) throw new Error("WORKSPACE_CONTEXT_CONFLICT");
   if (!admin.isOwner) {
     throw new Error("Unauthorized: Only owners can add new owners.");
   }
@@ -157,8 +163,9 @@ export async function addOwner(userId: string) {
   return { success: true };
 }
 
-export async function removeOwner(userId: string) {
+export async function removeOwner(expectedOrgId: string, userId: string) {
   const admin = await requireApprovedStaff();
+  if (admin.activeOrgId !== expectedOrgId) throw new Error("WORKSPACE_CONTEXT_CONFLICT");
   if (!admin.isOwner) {
     throw new Error("Unauthorized: Only owners can remove owners.");
   }
@@ -175,5 +182,31 @@ export async function removeOwner(userId: string) {
   }
 
   revalidatePath("/dashboard/admin");
+  return { success: true };
+}
+export async function updateOrganization(expectedOrgId: string, formData: FormData) {
+  const admin = await requireApprovedStaff();
+  if (admin.activeOrgId !== expectedOrgId) throw new Error("WORKSPACE_CONTEXT_CONFLICT");
+  if (!admin.isOwner) {
+    throw new Error("Unauthorized: Only owners can update organization details.");
+  }
+
+  const name = formData.get("name")?.toString().trim();
+  if (!name || name.length < 2 || name.length > 100) {
+    return { error: "Organization name must be between 2 and 100 characters." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("organizations")
+    .update({ name })
+    .eq("id", admin.activeOrgId);
+
+  if (error) {
+    console.error("Failed to update organization:", error);
+    return { error: "Failed to update organization settings." };
+  }
+
+  revalidatePath("/", "layout");
   return { success: true };
 }

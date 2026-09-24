@@ -5,7 +5,9 @@ import { addAllowlistEmail, removeAllowlistEmail } from "../actions";
 
 export function AllowlistForm({
   emails,
+  expectedOrgId,
 }: {
+  expectedOrgId: string;
   emails: { email: string; created_at: string; added_by: string | null }[];
 }) {
   const [isPending, startTransition] = useTransition();
@@ -18,7 +20,7 @@ export function AllowlistForm({
 
     setError(null);
     startTransition(async () => {
-      const result = await addAllowlistEmail(newEmail);
+      const result = await addAllowlistEmail(expectedOrgId, newEmail);
       if (result?.error) {
         setError(result.error);
       } else {
@@ -32,7 +34,7 @@ export function AllowlistForm({
     
     setError(null);
     startTransition(async () => {
-      const result = await removeAllowlistEmail(email);
+      const result = await removeAllowlistEmail(expectedOrgId, email);
       if (result?.error) {
         setError(result.error);
       }

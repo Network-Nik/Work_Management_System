@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { signOut } from "@/app/auth/actions";
-import { requireApprovedStaff } from "@/lib/auth/require-approved-staff";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function PendingPage() {
@@ -18,17 +17,16 @@ export default async function PendingPage() {
     redirect("/login");
   }
 
-  // 2. If already an approved staff member, send to dashboard
-  let isApproved = false;
-  try {
-    await requireApprovedStaff();
-    isApproved = true;
-  } catch {
-    isApproved = false;
-  }
+  // 2. Check for approved memberships directly to avoid redirect swallows
+  const { data: approvedMemberships } = await supabase
+    .from("organization_members")
+    .select("organization_id")
+    .eq("user_id", user.id)
+    .eq("access_status", "approved")
+    .limit(1);
 
-  if (isApproved) {
-    redirect("/dashboard");
+  if (approvedMemberships && approvedMemberships.length > 0) {
+    redirect("/workspace-selection");
   }
 
   // 3. Fetch staff profile
@@ -45,13 +43,17 @@ export default async function PendingPage() {
     redirect("/register");
   }
 
-  // 5. Determine if user is fully rejected (all memberships rejected)
+  // 5. Check organization memberships
   const { data: memberships } = await supabase
     .from("organization_members")
     .select("access_status")
     .eq("user_id", user.id);
 
-  const isRejected = memberships && memberships.length > 0 && memberships.every(m => m.access_status === "rejected");
+  if (!memberships || memberships.length === 0) {
+    redirect("/register");
+  }
+
+  const isRejected = memberships.every(m => m.access_status === "rejected");
 
   if (isRejected) {
     return (

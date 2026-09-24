@@ -11,7 +11,7 @@ const statuses: { value: AvailabilityStatus; label: string; color: string; dot: 
   { value: "away", label: "Away", color: "text-zinc-400 bg-zinc-500/10 border-zinc-500/20", dot: "bg-zinc-400" },
 ];
 
-export function AvailabilityUpdater({ currentAvailability }: { currentAvailability: AvailabilityStatus }) {
+export function AvailabilityUpdater({ currentAvailability, expectedOrgId }: { currentAvailability: AvailabilityStatus, expectedOrgId: string }) {
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   
@@ -25,7 +25,7 @@ export function AvailabilityUpdater({ currentAvailability }: { currentAvailabili
     
     setLoading(true);
     setIsOpen(false); // optimistic close
-    await updateMyAvailability(value);
+    await updateMyAvailability(expectedOrgId, value);
     setLoading(false);
   };
 

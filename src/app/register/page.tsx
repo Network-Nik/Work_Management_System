@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { signOut } from "@/app/auth/actions";
 import { RegisterForm } from "@/app/register/register-form";
 import { BootstrapForm } from "@/app/register/bootstrap-form";
-import { requireApprovedStaff } from "@/lib/auth/require-approved-staff";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function RegisterPage() {
@@ -20,28 +19,19 @@ export default async function RegisterPage() {
     redirect("/login");
   }
 
-  // 2. Check if already an approved staff member
-  let isApproved = false;
-  try {
-    await requireApprovedStaff();
-    isApproved = true;
-  } catch {
-    isApproved = false;
-  }
+  // 2. Check for existing organization memberships
+  const { data: memberships } = await supabase
+    .from("organization_members")
+    .select("organization_id, access_status")
+    .eq("user_id", user.id);
 
-  if (isApproved) {
-    redirect("/dashboard");
-  }
+  if (memberships && memberships.length > 0) {
+    const hasApproved = memberships.some(m => m.access_status === "approved");
+    if (hasApproved) {
+      redirect("/workspace-selection");
+    }
 
-  // 3. Check for existing staff profile
-  const { data: profile } = await supabase
-    .from("staff_profiles")
-    .select("access_status")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (profile) {
-    // Pending or rejected profile already exists
+    // Pending or rejected memberships already exist
     redirect("/pending");
   }
 

@@ -41,6 +41,11 @@ export async function assignWork(formData: FormData) {
       return { error: "Employees cannot assign work" };
     }
 
+    const expectedOrgId = formData.get("expectedOrgId") as string;
+    if (expectedOrgId && expectedOrgId !== staff.activeOrgId) {
+      return { error: "WORKSPACE_CONTEXT_CONFLICT" };
+    }
+
     const title = formData.get("title")?.toString().trim();
     const description = formData.get("description")?.toString().trim() || null;
     const reference_id = formData.get("reference_id")?.toString().trim() || null;

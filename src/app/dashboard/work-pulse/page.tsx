@@ -87,6 +87,7 @@ export default async function WorkPulsePage() {
             departments={departments} 
             currentUserId={staff.user_id} 
             currentUserAvailability={staff.availability as AvailabilityStatus}
+            expectedOrgId={staff.activeOrgId}
           />
         </div>
       </div>

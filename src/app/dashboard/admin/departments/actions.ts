@@ -11,6 +11,11 @@ export async function saveDepartment(formData: FormData) {
     throw new Error("Unauthorized: Only Admins can manage departments.");
   }
 
+  const expectedOrgId = formData.get("expectedOrgId") as string;
+  if (expectedOrgId && expectedOrgId !== staff.activeOrgId) {
+    return { error: "WORKSPACE_CONTEXT_CONFLICT" };
+  }
+
   const id = formData.get("id") as string | null;
   const name = formData.get("name") as string;
   const description = formData.get("description") as string;

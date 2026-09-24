@@ -10,14 +10,16 @@ type DepartmentGroup = {
   staffList: WorkPulseStaff[];
 };
 
-export function WorkPulseBoard({ 
-  departments, 
+export function WorkPulseBoard({
+  departments,
   currentUserId,
-  currentUserAvailability 
-}: { 
-  departments: DepartmentGroup[]; 
+  currentUserAvailability,
+  expectedOrgId
+}: {
+  departments: DepartmentGroup[];
   currentUserId: string;
   currentUserAvailability: AvailabilityStatus;
+  expectedOrgId: string;
 }) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<WorkPulseEntry | null>(null);
@@ -39,9 +41,9 @@ export function WorkPulseBoard({
           <h1 className="text-2xl font-bold text-zinc-100">Work Pulse</h1>
           <p className="text-sm text-zinc-400">See what your team is working on right now.</p>
         </div>
-        
+
         <div className="flex items-center gap-3">
-          <AvailabilityUpdater currentAvailability={currentUserAvailability} />
+          <AvailabilityUpdater currentAvailability={currentUserAvailability} expectedOrgId={expectedOrgId} />
           <button
             onClick={() => setIsCreateOpen(true)}
             className="px-4 py-2 text-sm font-medium bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition shadow-sm"
@@ -61,7 +63,7 @@ export function WorkPulseBoard({
         {departments.map((dept) => (
           <section key={dept.name} className="space-y-4">
             <h2 className="text-sm font-semibold tracking-wider uppercase text-zinc-500 pl-1">{dept.name}</h2>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {dept.staffList.map((staff) => {
                 const avail = getAvailabilityStyle(staff.availability);
@@ -82,7 +84,7 @@ export function WorkPulseBoard({
                           <p className="text-xs text-zinc-400 truncate">{staff.jobTitle || "Team Member"}</p>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center gap-1.5 shrink-0" aria-label={`Status: ${avail.label}`}>
                         <span className={`w-2 h-2 rounded-full ${avail.bg}`} aria-hidden="true" />
                         <span className={`text-xs font-medium ${avail.color}`}>{avail.label}</span>
@@ -96,8 +98,8 @@ export function WorkPulseBoard({
                         </div>
                       ) : (
                         staff.activeEntries.map((entry) => (
-                          <div 
-                            key={entry.id} 
+                          <div
+                            key={entry.id}
                             onClick={() => isMe && setEditingEntry(entry)}
                             className={`p-3 rounded-xl bg-zinc-950/60 border border-zinc-800/80 transition-colors ${isMe ? 'cursor-pointer hover:bg-zinc-950 hover:border-indigo-500/30' : ''}`}
                             role={isMe ? "button" : "article"}
@@ -111,11 +113,11 @@ export function WorkPulseBoard({
                                 </span>
                               )}
                             </div>
-                            
+
                             {entry.description && (
                               <p className="text-xs text-zinc-400 line-clamp-2 mb-2">{entry.description}</p>
                             )}
-                            
+
                             {entry.estimatedEndAt && (
                               <div className="flex items-center gap-1 text-[11px] text-zinc-500">
                                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -136,14 +138,15 @@ export function WorkPulseBoard({
         ))}
       </div>
 
-      <CreatePulseModal 
-        isOpen={isCreateOpen} 
-        onClose={() => setIsCreateOpen(false)} 
+      <CreatePulseModal
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        expectedOrgId={expectedOrgId}
       />
-      
-      <EditPulseModal 
-        entry={editingEntry} 
-        onClose={() => setEditingEntry(null)} 
+
+      <EditPulseModal
+        entry={editingEntry}
+        onClose={() => setEditingEntry(null)}
       />
     </>
   );

@@ -5,7 +5,7 @@ import { DepartmentForm } from "./department-form";
 
 export default async function AdminDepartmentsPage() {
   const staff = await requireApprovedStaff();
-  
+
   if (staff.role !== 'admin') {
     redirect("/dashboard/admin");
   }
@@ -49,12 +49,13 @@ export default async function AdminDepartmentsPage() {
                       )}
                     </div>
                     {/* Basic edit button triggering state could go here, for V1 we keep it simple */}
-                    <DepartmentForm 
-                       existingId={dept.id} 
-                       initialName={dept.name} 
-                       initialDesc={dept.description || undefined} 
-                       initialActive={dept.is_active} 
-                       isEdit 
+                    <DepartmentForm
+                       existingId={dept.id}
+                       initialName={dept.name}
+                       initialDesc={dept.description || undefined}
+                       initialActive={dept.is_active}
+                       expectedOrgId={staff.activeOrgId}
+                       isEdit
                     />
                   </div>
                 ))}
@@ -66,7 +67,7 @@ export default async function AdminDepartmentsPage() {
         <div>
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 sticky top-20">
             <h2 className="text-lg font-semibold text-zinc-200 mb-4">Add Department</h2>
-            <DepartmentForm />
+            <DepartmentForm expectedOrgId={staff.activeOrgId} />
           </div>
         </div>
       </div>

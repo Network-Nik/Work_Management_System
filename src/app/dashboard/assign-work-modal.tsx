@@ -13,7 +13,7 @@ type StaffMember = {
   job_title?: string | null;
 };
 
-export function AssignWorkModal({ staffList }: { staffList: StaffMember[] }) {
+export function AssignWorkModal({ staffList, expectedOrgId }: { staffList: StaffMember[], expectedOrgId: string }) {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -54,6 +54,7 @@ export function AssignWorkModal({ staffList }: { staffList: StaffMember[] }) {
             </div>
             
             <form onSubmit={handleSubmit} className="p-6">
+              <input type="hidden" name="expectedOrgId" value={expectedOrgId} />
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-zinc-300 mb-1">Title <span className="text-rose-500">*</span></label>

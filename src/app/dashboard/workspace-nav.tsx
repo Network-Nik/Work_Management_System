@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { type ApprovedStaff } from "@/lib/auth/require-approved-staff";
 import { signOut } from "@/app/auth/actions";
 import { useState } from "react";
+import { WorkspaceSwitcher } from "./workspace-switcher";
 
 type WorkspaceNavProps = {
   staff: ApprovedStaff;
@@ -36,11 +37,7 @@ export function WorkspaceNav({ staff, unreadCount }: WorkspaceNavProps) {
     <>
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex flex-col w-64 border-r border-zinc-800 bg-zinc-950/50 backdrop-blur-xl h-full fixed top-0 left-0 z-40">
-        <div className="p-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
-            Workspace
-          </p>
-        </div>
+        <WorkspaceSwitcher staff={staff} />
 
         <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
@@ -85,7 +82,9 @@ export function WorkspaceNav({ staff, unreadCount }: WorkspaceNavProps) {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-zinc-200 truncate">{staff.email}</p>
-                <p className="text-xs text-zinc-500 truncate">{staff.role === 'admin' ? "Administrator" : staff.role === 'manager' ? "Manager" : "Employee"}</p>
+                <p className="text-xs text-zinc-500 truncate">
+                  {staff.isOwner ? (staff.role === 'admin' ? "Admin + Owner" : "Owner") : (staff.role === 'admin' ? "Administrator" : staff.role === 'manager' ? "Manager" : "Employee")}
+                </p>
               </div>
             </button>
 

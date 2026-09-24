@@ -3,7 +3,7 @@
 import { useTransition } from "react";
 import { approveStaff, rejectStaff } from "./actions";
 
-export function RegistrationActions({ userId }: { userId: string }) {
+export function RegistrationActions({ userId, expectedOrgId }: { userId: string, expectedOrgId: string }) {
   const [isPending, startTransition] = useTransition();
 
   return (
@@ -11,7 +11,7 @@ export function RegistrationActions({ userId }: { userId: string }) {
       <button
         onClick={() => {
           startTransition(async () => {
-            await rejectStaff(userId);
+            await rejectStaff(expectedOrgId, userId);
           });
         }}
         disabled={isPending}
@@ -22,7 +22,7 @@ export function RegistrationActions({ userId }: { userId: string }) {
       <button
         onClick={() => {
           startTransition(async () => {
-            await approveStaff(userId);
+            await approveStaff(expectedOrgId, userId);
           });
         }}
         disabled={isPending}

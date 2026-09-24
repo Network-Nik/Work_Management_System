@@ -31,7 +31,7 @@ export default async function AllowlistPage() {
         </div>
       </div>
 
-      <AllowlistForm emails={emails || []} />
+      <AllowlistForm emails={emails || []} expectedOrgId={staff.activeOrgId} />
     </div>
   );
 }

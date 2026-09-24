@@ -12,9 +12,10 @@ type Props = {
   currentUserId: string;
   owners: Owner[];
   approvedStaff: { user_id: string; email: string }[];
+  expectedOrgId: string;
 };
 
-export function OwnershipControls({ currentUserId, owners, approvedStaff }: Props) {
+export function OwnershipControls({ currentUserId, owners, approvedStaff, expectedOrgId }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<string>("");
@@ -23,7 +24,7 @@ export function OwnershipControls({ currentUserId, owners, approvedStaff }: Prop
     if (!selectedUser) return;
     setLoading(true);
     setError(null);
-    const result = await addOwner(selectedUser);
+    const result = await addOwner(expectedOrgId, selectedUser);
     if (result?.error) {
       setError(result.error);
     } else {
@@ -36,7 +37,7 @@ export function OwnershipControls({ currentUserId, owners, approvedStaff }: Prop
     if (!confirm("Are you sure you want to remove this owner? They will lose ownership access but remain an Admin.")) return;
     setLoading(true);
     setError(null);
-    const result = await removeOwner(userId);
+    const result = await removeOwner(expectedOrgId, userId);
     if (result?.error) {
       setError(result.error);
     }

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { RegistrationActions } from "@/app/dashboard/admin/registration-actions";
 import { RoleSelector } from "@/app/dashboard/admin/role-selector";
 import { OwnershipControls } from "@/app/dashboard/admin/ownership-controls";
+import { CompanySettings } from "@/app/dashboard/admin/company-settings";
 
 export default async function AdminPage() {
   const staff = await requireApprovedStaff();
@@ -14,6 +15,12 @@ export default async function AdminPage() {
   }
   
   const supabase = await createClient();
+
+  const { data: orgData } = await supabase
+    .from("organizations")
+    .select("name")
+    .eq("id", staff.activeOrgId)
+    .single();
   
   let owners: any[] = [];
   if (staff.isOwner) {
@@ -61,11 +68,15 @@ export default async function AdminPage() {
       </div>
 
       {staff.isOwner && (
-        <OwnershipControls
-          currentUserId={staff.user_id}
-          owners={owners}
-          approvedStaff={approvedStaff || []}
-        />
+        <>
+          <CompanySettings expectedOrgId={staff.activeOrgId} initialName={orgData?.name || "Unknown"} />
+          <OwnershipControls
+            currentUserId={staff.user_id}
+            owners={owners}
+            approvedStaff={approvedStaff || []}
+            expectedOrgId={staff.activeOrgId}
+          />
+        </>
       )}
 
       <div className="mb-12">
@@ -84,7 +95,7 @@ export default async function AdminPage() {
                     <p className="text-xs text-zinc-500 font-mono mt-1">{p.whatsapp_number}</p>
                     <p className="text-[10px] text-zinc-600 mt-1">Registered {new Date(p.created_at).toLocaleDateString()}</p>
                   </div>
-                  <RegistrationActions userId={p.user_id} />
+                  <RegistrationActions userId={p.user_id} expectedOrgId={staff.activeOrgId} />
                 </div>
               ))}
             </div>
@@ -108,7 +119,7 @@ export default async function AdminPage() {
                     <p className="text-xs text-zinc-500 font-mono mt-1">{a.whatsapp_number}</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <RoleSelector userId={a.user_id} currentRole={a.role} />
+                    <RoleSelector userId={a.user_id} currentRole={a.role} expectedOrgId={staff.activeOrgId} />
                   </div>
                 </div>
               ))}
