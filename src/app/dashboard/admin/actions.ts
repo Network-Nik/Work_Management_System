@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache";
 export async function approveStaff(expectedOrgId: string, userId: string) {
   const admin = await requireApprovedStaff();
   if (admin.activeOrgId !== expectedOrgId) throw new Error("WORKSPACE_CONTEXT_CONFLICT");
-  if (admin.role !== 'admin') {
+  if (admin.role !== 'admin' && !admin.isOwner) {
     throw new Error("Unauthorized");
   }
 
@@ -29,7 +29,7 @@ export async function approveStaff(expectedOrgId: string, userId: string) {
 export async function rejectStaff(expectedOrgId: string, userId: string) {
   const admin = await requireApprovedStaff();
   if (admin.activeOrgId !== expectedOrgId) throw new Error("WORKSPACE_CONTEXT_CONFLICT");
-  if (admin.role !== 'admin') {
+  if (admin.role !== 'admin' && !admin.isOwner) {
     throw new Error("Unauthorized");
   }
 
@@ -51,7 +51,7 @@ export async function rejectStaff(expectedOrgId: string, userId: string) {
 export async function addAllowlistEmail(expectedOrgId: string, email: string) {
   const admin = await requireApprovedStaff();
   if (admin.activeOrgId !== expectedOrgId) throw new Error("WORKSPACE_CONTEXT_CONFLICT");
-  if (admin.role !== 'admin') {
+  if (admin.role !== 'admin' && !admin.isOwner) {
     throw new Error("Unauthorized");
   }
 
@@ -84,7 +84,7 @@ export async function addAllowlistEmail(expectedOrgId: string, email: string) {
 export async function removeAllowlistEmail(expectedOrgId: string, email: string) {
   const admin = await requireApprovedStaff();
   if (admin.activeOrgId !== expectedOrgId) throw new Error("WORKSPACE_CONTEXT_CONFLICT");
-  if (admin.role !== 'admin') {
+  if (admin.role !== 'admin' && !admin.isOwner) {
     throw new Error("Unauthorized");
   }
 
@@ -110,7 +110,7 @@ export async function removeAllowlistEmail(expectedOrgId: string, email: string)
 export async function updateStaffRole(expectedOrgId: string, userId: string, role: string) {
   const admin = await requireApprovedStaff();
   if (admin.activeOrgId !== expectedOrgId) throw new Error("WORKSPACE_CONTEXT_CONFLICT");
-  if (admin.role !== 'admin') {
+  if (admin.role !== 'admin' && !admin.isOwner) {
     throw new Error("Unauthorized");
   }
 
@@ -208,5 +208,52 @@ export async function updateOrganization(expectedOrgId: string, formData: FormDa
   }
 
   revalidatePath("/", "layout");
+  return { success: true };
+}
+
+export async function revokeStaff(expectedOrgId: string, userId: string) {
+  const admin = await requireApprovedStaff();
+  if (admin.activeOrgId !== expectedOrgId) throw new Error("WORKSPACE_CONTEXT_CONFLICT");
+  if (admin.role !== 'admin' && !admin.isOwner) {
+    throw new Error("Unauthorized");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_revoke_staff_member", {
+    p_target_user_id: userId,
+    p_org_id: expectedOrgId,
+  });
+
+  if (error) {
+    if (error.message.includes("owner")) {
+      return { error: "Cannot revoke access for an organization owner. Please transfer ownership first." };
+    }
+    console.error("Failed to revoke staff:", error);
+    return { error: error.message || "Failed to revoke staff member" };
+  }
+
+  revalidatePath("/dashboard/admin");
+  return { success: true };
+}
+
+export async function restoreStaff(expectedOrgId: string, userId: string) {
+  const admin = await requireApprovedStaff();
+  if (admin.activeOrgId !== expectedOrgId) throw new Error("WORKSPACE_CONTEXT_CONFLICT");
+  if (admin.role !== 'admin' && !admin.isOwner) {
+    throw new Error("Unauthorized");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_restore_staff_member", {
+    p_target_user_id: userId,
+    p_org_id: expectedOrgId,
+  });
+
+  if (error) {
+    console.error("Failed to restore staff:", error);
+    return { error: error.message || "Failed to restore staff member" };
+  }
+
+  revalidatePath("/dashboard/admin");
   return { success: true };
 }

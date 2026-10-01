@@ -39,7 +39,7 @@ export function CompanySettings({ expectedOrgId, initialName }: CompanySettingsP
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden p-6 mb-12">
       <h2 className="text-lg font-semibold text-zinc-200 mb-1">Company Settings</h2>
-      <p className="text-sm text-zinc-500 mb-6">Manage your organization's identity and core details.</p>
+      <p className="text-sm text-zinc-500 mb-6">Manage your organization&apos;s identity and core details.</p>
       
       <form ref={formRef} action={handleSubmit} className="max-w-md space-y-4">
         <div>

@@ -6,7 +6,7 @@ import { DepartmentForm } from "./department-form";
 export default async function AdminDepartmentsPage() {
   const staff = await requireApprovedStaff();
 
-  if (staff.role !== 'admin') {
+  if (staff.role !== 'admin' && !staff.isOwner) {
     redirect("/dashboard/admin");
   }
 

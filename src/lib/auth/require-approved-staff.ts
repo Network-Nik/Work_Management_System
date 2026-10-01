@@ -111,7 +111,7 @@ export async function requireApprovedStaff(): Promise<ApprovedStaff> {
   // Fetch the organization-scoped profile fields
   const { data: orgProfile } = await supabase
     .from("organization_members")
-    .select("display_name, username, job_title, department_id, availability")
+    .select("role, display_name, username, job_title, department_id, availability")
     .eq("organization_id", activeOrgId)
     .eq("user_id", profile.user_id)
     .single();
@@ -130,6 +130,7 @@ export async function requireApprovedStaff(): Promise<ApprovedStaff> {
     ...profile,
     activeOrgId,
     isOwner,
+    role: orgProfile?.role ?? profile.role,
     display_name: orgProfile?.display_name ?? null,
     username: orgProfile?.username ?? null,
     job_title: orgProfile?.job_title ?? null,

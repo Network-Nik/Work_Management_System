@@ -6,11 +6,12 @@ import { RegistrationActions } from "@/app/dashboard/admin/registration-actions"
 import { RoleSelector } from "@/app/dashboard/admin/role-selector";
 import { OwnershipControls } from "@/app/dashboard/admin/ownership-controls";
 import { CompanySettings } from "@/app/dashboard/admin/company-settings";
+import { RevokeButton, RestoreButton } from "@/app/dashboard/admin/revoke-restore-actions";
 
 export default async function AdminPage() {
   const staff = await requireApprovedStaff();
   
-  if (staff.role !== 'admin') {
+  if (staff.role !== 'admin' && !staff.isOwner) {
     redirect("/dashboard");
   }
   
@@ -51,6 +52,11 @@ export default async function AdminPage() {
   const { data: approvedStaff } = await supabase.rpc("get_org_staff_profiles", {
     p_org_id: staff.activeOrgId,
     p_access_status: "approved",
+  });
+
+  const { data: revokedStaff } = await supabase.rpc("get_org_staff_profiles", {
+    p_org_id: staff.activeOrgId,
+    p_access_status: "revoked",
   });
 
   return (
@@ -103,7 +109,7 @@ export default async function AdminPage() {
         </div>
       </div>
 
-      <div>
+      <div className="mb-12">
         <h2 className="text-lg font-semibold text-zinc-200 mb-4">Approved Staff</h2>
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
           {!approvedStaff || approvedStaff.length === 0 ? (
@@ -120,6 +126,9 @@ export default async function AdminPage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <RoleSelector userId={a.user_id} currentRole={a.role} expectedOrgId={staff.activeOrgId} />
+                    {staff.user_id !== a.user_id && (
+                      <RevokeButton userId={a.user_id} expectedOrgId={staff.activeOrgId} />
+                    )}
                   </div>
                 </div>
               ))}
@@ -127,7 +136,28 @@ export default async function AdminPage() {
           )}
         </div>
       </div>
+
+      {revokedStaff && revokedStaff.length > 0 && (
+        <div className="mb-12 opacity-75">
+          <h2 className="text-lg font-semibold text-zinc-400 mb-4">Revoked Staff</h2>
+          <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-2xl overflow-hidden">
+            <div className="divide-y divide-zinc-800/50">
+              {revokedStaff.map((r) => (
+                <div key={r.user_id} className="p-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-zinc-400">{r.email}</p>
+                    <p className="text-xs text-zinc-600 font-mono mt-1">{r.whatsapp_number}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-zinc-600 mr-2 capitalize">{r.role}</span>
+                    <RestoreButton userId={r.user_id} expectedOrgId={staff.activeOrgId} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-

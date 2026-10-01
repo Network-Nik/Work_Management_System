@@ -7,7 +7,7 @@ import { AllowlistForm } from "./allowlist-form";
 export default async function AllowlistPage() {
   const staff = await requireApprovedStaff();
   
-  if (staff.role !== 'admin') {
+  if (staff.role !== 'admin' && !staff.isOwner) {
     redirect("/dashboard");
   }
 

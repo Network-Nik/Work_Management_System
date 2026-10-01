@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache";
 export async function saveDepartment(formData: FormData) {
   const staff = await requireApprovedStaff();
   
-  if (staff.role !== 'admin') {
+  if (staff.role !== 'admin' && !staff.isOwner) {
     throw new Error("Unauthorized: Only Admins can manage departments.");
   }
 
